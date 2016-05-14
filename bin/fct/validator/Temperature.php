@@ -30,10 +30,14 @@ class Temperature extends Range {
         $max = $this->test->validation->max;
 
         if ($val >= $min && $val <= $max)
-            return true;
+        {
+            $this->resultName = "Pass";
+            $this->pass = true;
+        }
         else {
-            $this->failureDescription = $val . "C is not within " . $min . "C to " . $max . "C";
-            return false;
+            $this->output = $val . "C is not within " . $min . "C to " . $max . "C";
+            $this->resultName = "Fail";
+            $this->pass = false;
         }
     }
 

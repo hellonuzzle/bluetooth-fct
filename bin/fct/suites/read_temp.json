@@ -23,7 +23,7 @@
       "validation": {
         "type": "temperature",
         "min": "30",
-        "max": "34"
+        "max": "35"
       }
     },
     {

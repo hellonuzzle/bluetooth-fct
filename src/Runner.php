@@ -29,6 +29,8 @@ use Alzander\BluetoothFCT\MCPElements\RunTest;
 use League\Flysystem\Filesystem;
 use Webmozart\Console\Api\IO\IO;
 
+use Webmozart\Console\UI\Component\Table;
+
 use Sabre\Xml\Service;
 use Alzander\BluetoothFCT\DUT\BTDevice;
 
@@ -125,31 +127,6 @@ class Runner
 
             $this->flysystem->write('/xmls/' . $this->testFile . '/test_' . $test->id . '.xml', $data);
         }
-/*
-        $data = $xml->write('test-suite', [
-            function ($writer) use ($devices) {
-                foreach ($devices as $device) {
-                    $target = new Target($device);
-                    $writer->write($target);
-                }
-            },
-            function ($writer) {
-                foreach ($this->tests as $test) {
-                    $writer->write($test);
-                }
-            },
-
-            function ($writer) {
-                foreach ($this->tests as $test)
-                    $writer->write(
-                        new RunTest("test_" . $test->id)
-                    );
-            }
-        ]);
-
-        $this->flysystem->write('/xmls/' . $this->testFile . '/test_1.xml', $data);
-*/
-
     }
 
     public function runTests()
@@ -165,7 +142,7 @@ class Runner
         $this->adb->devices();
 
         foreach ($this->tests as $test) {
-            $this->io->writeLine("<bu>Starting test " . $test->id . "</bu>");
+            $this->io->writeLine("\n<bu>Starting test " . $test->id . "</bu>");
             $testName = "test_" . $test->id;
 
             $this->adb->setTestName($testName);
@@ -175,38 +152,50 @@ class Runner
             $this->adb->startTestService();
             $this->adb->fetchResultsFile();
 
-            $this->processResultFile($test);
+            // Fetch the results and have the test validate them.
+            $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
+
+            $test->runValidation($results);
+
+            sleep(3);
         }
+
+        $this->printTestSummary();
     }
 
-    protected function processResultFile($test)
+    protected function printTestSummary()
     {
-        $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
+        $table = new Table();
+        $table->setHeaderRow(array("", "Name", "Result", "Output"));
 
-        $pattern = "AUTOTEST_TEST_" . $test->id . "_FILLER";
-        $pattern = "/^.*" . $pattern . ".*\$/m";
-        // search, and store all matching occurences in $matches
-        if(preg_match_all($pattern, $results, $matches)){
-            // Pull the actual return value out of the string that looks like
-            // - Value of the characteristic '14' is not equal to 'AUTOTEST_TEST_1_FILLER'
-            $valStart = strpos($matches[0][0], '\'');
-            $valEnd = strpos($matches[0][0], '\'', $valStart + 1);
+        $passCnt = 0;
+        $totalCnt = 0;
 
-            $value = substr($matches[0][0], $valStart+1, $valEnd - $valStart - 1);
+        foreach ($this->tests as $test)
+        {
+            $results =
+                [
+                    $test->id,
+                    $test->getName(),
+                    $test->getValidationResult(),
+                    $test->getValidationOutput()
+                ];
+            $table->addRow($results);
 
-            $customValidatorClass = "FCT\\Validator\\" . $test->testData->validation->type;
+            if ($test->getValidationPassFail())
+                $passCnt++;
 
-            $definedValidatorClass = "Alzander\\BluetoothFCT\\Validator\\" . $test->testData->validation->type;
-
-            if (class_exists($customValidatorClass))
-                $validator = new $customValidatorClass($test->testData, $this->io);
-            else
-                $validator = new $definedValidatorClass($test->testData, $this->io);
-            $validator->validate($value);
-        }
-        else{
-            echo "No matches found";
+            $totalCnt++;
         }
 
+        $this->io->writeLine("\n<b>Test Summary:</b>\n");
+        $this->io->writeLine("Total Tests: " . $totalCnt);
+        $this->io->writeLine("Tests Passed: " . $passCnt);
+        $this->io->writeLine("Tests Failed: " . ($totalCnt - $passCnt));
+
+        $table->render($this->io);
+        if ($passCnt == $totalCnt)
+            $this->io->writeLine("<pass>ALL TESTS PASSED!</pass>");
     }
+
 }

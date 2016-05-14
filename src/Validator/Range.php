@@ -33,11 +33,14 @@ class Range extends Validator {
         $min = $this->test->validation->min;
         $max = $this->test->validation->max;
 
-        if ($val >= $min && $val <= $max)
-            return true;
+        if ($val >= $min && $val <= $max) {
+            $this->resultName = "Pass";
+            $this->pass = true;
+        }
         else {
-            $this->failureDescription = $val . " is not within " . $min . " to " . $max;
-            return false;
+            $this->output = $val . " is not within " . $min . " to " . $max;
+            $this->resultName = "Fail";
+            $this->pass = false;
         }
     }
 

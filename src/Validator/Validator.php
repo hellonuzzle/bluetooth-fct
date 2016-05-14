@@ -32,12 +32,15 @@ abstract class Validator {
     protected $resultString;
     protected $io;
 
-    protected $failureDescription;
+    protected $pass;
+    protected $resultName;
+    protected $output;
 
     public function __construct($test, IO $io)
     {
         $this->test = $test;
         $this->io = $io;
+        $this->pass = false;
     }
 
     /**
@@ -47,27 +50,34 @@ abstract class Validator {
      */
     public function validate($val)
     {
-        if ($this->runValidationFor($val))
+        $this->runValidationFor($val);
+
+        if ($this->pass)
         {
-            $this->io->writeLine("<pass>Test Passed </pass>- " . $this->test->description . ". Value = " . $val);
-            return true;
+            $this->io->writeLine("<pass>" . $this->resultName . "</pass> - " . $this->test->description . ". Value = " . $val);
         }
         else
         {
-            $output = $this->getFailureDescription($val);
-            $this->io->writeLine("<fail>FAILURE! </fail>- " . $this->test->description . " " . $output);
+            $this->io->writeLine("<fail>" . $this->resultName . "</fail> - " . $this->test->description . " " . $this->output);
         }
 
         // First, par
     }
 
-    protected function getFailureDescription($val)
-    {
-        if (empty($this->failureDescription))
-            $this->failureDescription = $val . " is not within validation parameters.";
+    abstract protected function runValidationFor($val);
 
-        return $this->failureDescription;
+    public function getResult()
+    {
+        return $this->resultName;
     }
 
-    abstract protected function runValidationFor($val);
+    public function getOutput()
+    {
+        return $this->output;
+    }
+
+    public function getPassFail()
+    {
+        return $this->pass;
+    }
 }
