@@ -1,0 +1,47 @@
+{
+  "name": "Example Board",
+  "CCCD_UUID": "12345678-0000-1000-8000-00805f9b34fb",
+  "timeouts": {
+    "connect": 5000,
+    "discover_services": 10000,
+    "bond": 10000
+  },
+  "services": [
+    {
+      "id": "temperature",
+      "name": "Temperature Sensor",
+      "UUID": "deadbeef-1212-efde-1523-785fef13d123",
+      "characteristics": [
+        {
+          "id": "value",
+          "UUID": "deadbeef-1212-efde-1234-785fef13d123",
+          "properties": {
+            "notify": "mandatory",
+            "read": "mandatory",
+            "write": "mandatory",
+            "write_without_response": "mandatory",
+            "signed_write": "mandatory"
+          }
+        }
+      ]
+    },
+    {
+      "id": "battery",
+      "name": "Battery Readout Service",
+      "UUID": "deadbeef-1212-efde-1523-785fef13d456",
+      "characteristics": [
+        {
+          "id": "value",
+          "UUID": "deadbeef-1212-efde-1234-785fef13d456",
+          "properties": {
+            "notify": "mandatory",
+            "read": "mandatory",
+            "write": "mandatory",
+            "write_without_response": "mandatory",
+            "signed_write": "mandatory"
+          }
+        }
+      ]
+    }
+  ]
+}
