@@ -1,15 +1,17 @@
 {
   "name": "alzander/bluetooth-fct",
   "description": "CLI based functional test suite using the Nordic Master Control Panel Android app. ",
-  "license": "MIT",
+  "license": "GPL v3",
   "keywords": ["nordic", "bluetooth", "automated tests"],
   "authors": [
     {
       "name": "Alex Andreae",
       "email": "alzander@gmail.com"
+      "company": "Nuzzle"
     }
   ],
   "require": {
+    "php": "^5.6 || ^7.0",
     "webmozart/console": "~1.0@beta",
     "sabre/xml": "^1.4",
     "oneup/flysystem-bundle": "^1.3"
