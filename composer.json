@@ -11,7 +11,7 @@
     }
   ],
   "require": {
-    "php": "^5.6 || ^7.0",
+    "php": "^5.5.10 || ^7.0",
     "webmozart/console": "~1.0@beta",
     "sabre/xml": "^1.4",
     "oneup/flysystem-bundle": "^1.3"
