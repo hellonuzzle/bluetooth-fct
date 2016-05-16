@@ -3,6 +3,9 @@ A PHP development environment for creating a Bluetooth testing suite. Useful for
 
 ## Requirements 
 This software relies on the (awesome) NordicSemiconductor Master Control Panel tool running on Android.
+* Nordic MCP tool on Android phone
+* ADB (Android Debug command line tool)
+* PHP 5.5+
 
 ## Inception
 We are building the Nuzzle pet tracking collar. We need a fast, accurate way to test each of the sensors on our device during development and in a factory setting. Instead of hooking wires up to the device (easy during debug, more onerous in a factory), we want to use a special Bluetooth service to send out data. This automated suite can connect to the device automatically, read or write to characteristics and validate the responses.
@@ -25,6 +28,17 @@ We have a list of requirements we want to implement in our suite for our needs:
 
 ### Need updates in Nordic MCP to accomplish
 * Automated BT scan and connection. Want to be able to specify a BT device 'name' (or even more details like a advertising profile) and scan for any addresses reporting that name. Then, connect based on criteria (strongest RSSI, never connected before, etc)
+
+# Installation
+## Composer - Add To Your project 
+Run the following composer command in your project:
+
+>composer require alzander/bluetooth-fct:dev-master
+
+## Create Test Directory/Structure
+* Copy the /vendor/alzander/bluetooth-fct/bin/bluetooth-fct file (or whole directory) to where you'll create your test suite
+* Edit the bluetooth-fct file and update the autoload paths to point to your /vendor/autoload.php file
+* Create your tests, as below.
 
 # Running Tests
 The bluetooth-fct php script starts and runs tests. It expects the following sub-directory structure:
