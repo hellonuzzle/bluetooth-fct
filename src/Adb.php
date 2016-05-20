@@ -55,7 +55,14 @@ class Adb
     public function devices()
     {
         $output = shell_exec('adb devices');
+
+        $deviceCnt = substr_count($output, "device");
+        $deviceCnt--; // Remove the first line of "List of devices attached
         $this->io->writeLine($output);
+        if ($deviceCnt == 1)
+            return true;
+        else
+            return false;
     }
 
     public function removeOldResults()
@@ -88,9 +95,8 @@ class Adb
             if ($returnVal == 1) {
                 sleep(2);
                 $i++;
-                if ($i > 10) // We've waited too long, something is wrong
+                if ($i > 30) // We've waited too long, something is wrong
                 {
-                    $this->io->writeLine("Results not returned. Something went wrong...");
                     return false;
                 }
             }

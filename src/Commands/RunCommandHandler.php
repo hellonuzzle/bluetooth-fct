@@ -49,8 +49,6 @@ class RunCommandHandler
         $runner = new Runner($testFile, $io, $this->flysystem);
         $runner->generateXMLs();
 
-        $runner->runTests();
-
-        return 0;
+        return $runner->runTests();
     }
 }

@@ -136,10 +136,14 @@ class Runner
 
         //$process = new Process('adb');
         //$process->run();
-        $testSuite = "read_temp";
+        $testSuite = $this->testFile;
         $this->adb->setTestSuite($testSuite);
 
-        $this->adb->devices();
+        if (!$this->adb->devices())
+        {
+            $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
+            return 4;
+        }
 
         foreach ($this->tests as $test) {
             $this->io->writeLine("\n<bu>Starting test " . $test->id . "</bu>");
@@ -150,7 +154,11 @@ class Runner
             $this->adb->removeOldResults();
             $this->adb->uploadTestFile();
             $this->adb->startTestService();
-            $this->adb->fetchResultsFile();
+            if (!$this->adb->fetchResultsFile())
+            {
+                $this->io->writeLine("\nCRITICAL ERROR: Results not returned. Something went wrong...\n\n");
+                return 3;
+            }
 
             // Fetch the results and have the test validate them.
             $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
@@ -161,6 +169,7 @@ class Runner
         }
 
         $this->printTestSummary();
+        return 0;
     }
 
     protected function printTestSummary()
