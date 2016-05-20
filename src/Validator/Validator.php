@@ -36,9 +36,9 @@ abstract class Validator {
     protected $resultName;
     protected $output;
 
-    public function __construct($test, IO $io)
+    public function __construct($params, IO $io)
     {
-        $this->test = $test;
+        $this->params = $params;
         $this->io = $io;
         $this->pass = false;
     }
@@ -54,11 +54,11 @@ abstract class Validator {
 
         if ($this->pass)
         {
-            $this->io->writeLine("<pass>" . $this->resultName . "</pass> - " . $this->test->description . ". Value = " . $val);
+            $this->io->writeLine("<pass>" . $this->resultName . "</pass> Value = " . $val);
         }
         else
         {
-            $this->io->writeLine("<fail>" . $this->resultName . "</fail> - " . $this->test->description . " " . $this->output);
+            $this->io->writeLine("<fail>" . $this->resultName . "</fail> - " . $this->output);
         }
 
         // First, par

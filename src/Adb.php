@@ -93,7 +93,7 @@ class Adb
             $resultFile = $this->testName . '_result.txt';
             exec('adb pull "/sdcard/AlzanderBT/Test/' . $resultFile . '" "fct/results/' . $resultFile . '" > nul 2>&1', $output, $returnVal);
             if ($returnVal == 1) {
-                sleep(2);
+                sleep(1);
                 $i++;
                 if ($i > 30) // We've waited too long, something is wrong
                 {

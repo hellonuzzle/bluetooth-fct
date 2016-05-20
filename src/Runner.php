@@ -163,7 +163,7 @@ class Runner
             // Fetch the results and have the test validate them.
             $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
 
-            $test->runValidation($results);
+            $test->runValidations($results);
 
             sleep(3);
         }
@@ -175,26 +175,30 @@ class Runner
     protected function printTestSummary()
     {
         $table = new Table();
-        $table->setHeaderRow(array("", "Name", "Result", "Output"));
+        $table->setHeaderRow(array("Test ID", "Result", "Output"));
 
         $passCnt = 0;
         $totalCnt = 0;
 
         foreach ($this->tests as $test)
         {
-            $results =
-                [
-                    $test->id,
-                    $test->getName(),
-                    $test->getValidationResult(),
-                    $test->getValidationOutput()
-                ];
-            $table->addRow($results);
+            $subTest = 1;
+            foreach ($test->getValidationResults() as $validation)
+            {
+                $results =
+                    [
+                        $test->id . "." . $subTest,
+                        $validation->result,
+                        $validation->output,
+                    ];
+                $table->addRow($results);
 
-            if ($test->getValidationPassFail())
-                $passCnt++;
+                if ($validation->pass)
+                    $passCnt++;
+                $totalCnt++;
 
-            $totalCnt++;
+                $subTest++;
+            }
         }
 
         $this->io->writeLine("\n<b>Test Summary:</b>\n");
