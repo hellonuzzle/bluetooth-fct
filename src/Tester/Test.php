@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ abstract class Test implements XmlSerializable
     protected $devices;
     protected $io;
     protected $result;
+    protected $responseData;
 
     protected $validators;
 
@@ -81,11 +82,18 @@ abstract class Test implements XmlSerializable
         return $this->testData->description;
     }
 
+    public function getTestFillerValue()
+    {
+        return null;
+    }
+
+
     public function getValidationResults()
     {
         $return = array();
         foreach ($this->validators as $validator) {
             $result = new \stdClass();
+            $result->name = $validator->getName();
             $result->result = $validator->getResult();
             $result->output = $validator->getOutput();
             $result->pass = $validator->getPassFail();
@@ -134,27 +142,50 @@ abstract class Test implements XmlSerializable
         $this->tests = $tests;
     }
 
-    public function runValidations($results)
+    public function setResponseData($responseData)
     {
+        $this->responseData = $responseData;
+    }
 
-        $pattern = "AUTOTEST_TEST_" . $this->id . "_FILLER";
+    public function checkForCriticalFailures()
+    {
+        $pattern = "Connect...FAIL";
         $pattern = "/^.*" . $pattern . ".*\$/m";
-        // search, and store all matching occurences in $matches
-        if (preg_match_all($pattern, $results, $matches)) {
-            // Pull the actual return value out of the string that looks like
-            // - Value of the characteristic '14' is not equal to 'AUTOTEST_TEST_1_FILLER'
-            $valStart = strpos($matches[0][0], '\'');
-            $valEnd = strpos($matches[0][0], '\'', $valStart + 1);
 
-            $value = substr($matches[0][0], $valStart + 1, $valEnd - $valStart - 1);
+        if (preg_match_all($pattern, $this->responseData, $matches)) {
+            $this->io->writeLine("<fail>CRITICAL FAILURE: </fail>Could not connect to device.");
+            return true;
+        }
+        return false;
+    }
 
-            $this->io->writeLine("Running validation on response: " . $value);
+    public function runValidations()
+    {
+        foreach ($this->validators as $validator) {
+            $value = null;
 
-            foreach ($this->validators as $validator) {
-                $validator->validate($value);
+            $pattern = $this->getTestFillerValue();
+            if ($pattern !== null) {
+                $pattern = "/^.*" . $pattern . ".*\$/m";
+                // search, and store all matching occurences in $matches
+
+                if (preg_match_all($pattern, $this->responseData, $matches)) {
+                    // Pull the actual return value out of the string that looks like
+                    // - Value of the characteristic '14' is not equal to 'AUTOTEST_TEST_1_FILLER'
+                    $valStart = strpos($matches[0][0], '\'');
+                    $valEnd = strpos($matches[0][0], '\'', $valStart + 1);
+
+                    $value = substr($matches[0][0], $valStart + 1, $valEnd - $valStart - 1);
+
+                    $this->io->writeLine("Running validation on response: " . $value);
+
+                } else {
+                    $this->io->writeLine("<fail>Results file did not have any values for test.</fail>");
+                }
             }
-        } else {
-            $this->io->writeLine("<fail>ERROR! Results file did not have any values for test!</fail>");
+
+            $this->io->writeLine("");
+            $validator->validate($value);
         }
     }
 }

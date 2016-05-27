@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ abstract class Validator {
 
         if ($this->pass)
         {
-            $this->io->writeLine("<pass>" . $this->resultName . "</pass> Value = " . $val);
+            $this->io->writeLine("<pass>" . $this->resultName . "</pass>");
         }
         else
         {
@@ -65,6 +65,11 @@ abstract class Validator {
     }
 
     abstract protected function runValidationFor($val);
+
+    public function getName()
+    {
+        return $this->params->name;
+    }
 
     public function getResult()
     {

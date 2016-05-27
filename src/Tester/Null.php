@@ -23,35 +23,21 @@
  *   along with bluetooth-fct.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Alzander\BluetoothFCT\Commands;
+namespace Alzander\BluetoothFCT\Tester;
 
-use Webmozart\Console\Api\Args\Args;
-use Webmozart\Console\Api\Command\Command;
-use Webmozart\Console\Api\IO\IO;
+use Alzander\BluetoothFCT\Tester\Test;
+use Sabre\Xml\Writer;
 
-
-use League\Flysystem\Filesystem;
-
-use Alzander\BluetoothFCT\Runner;
-
-
-class GenerateXMLCommandHandler
+/**
+ * Class Null
+ * Does nothing. Allows for a BT connection without any other commands
+ *
+ * @package Alzander\BluetoothFCT\Tester\Characteristic
+ */
+class Null extends Test
 {
-    private $flysystem;
 
-    public function __construct(Filesystem $flysystem)
+    public function runTest(Writer $writer)
     {
-        $this->flysystem = $flysystem;
     }
-
-    public function handle(Args $args, IO $io, Command $command)
-    {
-        $testFile = $args->getArgument('test');
-
-        $runner = new Runner($testFile, $io, $this->flysystem);
-        $runner->generateXMLs();
-
-        return 0;
-    }
-
 }

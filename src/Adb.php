@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -73,8 +73,11 @@ class Adb
 
     public function uploadTestFile()
     {
+        $uploadFile = './fct/xmls/' . $this->testSuite . '/' . $this->testName . '.xml';
+        $uploadLocation = '/sdcard/AlzanderBT/Test/' . $this->testName . '.xml';
         $this->io->writeLine("Uploading new test file...");
-        $output = shell_exec('adb push ./fct/xmls/' . $this->testSuite . '/' . $this->testName . '.xml "/sdcard/AlzanderBT/Test/' . $this->testName . '.xml" > nul 2>&1');
+//        $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
+        $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
     }
 
     public function startTestService()

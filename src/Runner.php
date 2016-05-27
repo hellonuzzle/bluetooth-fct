@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -146,7 +146,7 @@ class Runner
         }
 
         foreach ($this->tests as $test) {
-            $this->io->writeLine("\n<bu>Starting test " . $test->id . "</bu>");
+            $this->io->writeLine("\n<bu>Starting test " . $test->id . ": " . $test->getName() . "</bu>");
             $testName = "test_" . $test->id;
 
             $this->adb->setTestName($testName);
@@ -156,14 +156,23 @@ class Runner
             $this->adb->startTestService();
             if (!$this->adb->fetchResultsFile())
             {
-                $this->io->writeLine("\nCRITICAL ERROR: Results not returned. Something went wrong...\n\n");
+                $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
                 return 3;
             }
+
+            $this->io->writeLine("");
 
             // Fetch the results and have the test validate them.
             $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
 
-            $test->runValidations($results);
+            $test->setResponseData($results);
+            if ($test->checkForCriticalFailures())
+            {
+                $this->io->writeLine("\nTesting stopped.\n\n");
+                return 3;
+            }
+
+            $test->runValidations();
 
             sleep(3);
         }
@@ -187,7 +196,7 @@ class Runner
             {
                 $results =
                     [
-                        $test->id . "." . $subTest,
+                        $test->id . "." . $subTest . " - " . $validation->name,
                         $validation->result,
                         $validation->output,
                     ];

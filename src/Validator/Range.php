@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@ class Range extends Validator {
 
     protected function runValidationFor($val)
     {
-        $min = $this->test->validation->min;
-        $max = $this->test->validation->max;
+        $min = $this->params->min;
+        $max = $this->params->max;
 
         if ($val >= $min && $val <= $max) {
             $this->resultName = "Pass";

@@ -7,7 +7,7 @@
  * @company: HelloNuzzle, Inc
  * @website: http://hellonuzzle.com
  *
- * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com
+ * (c) Alex Andreae <alzander@gmail.com> | <alex@hellonuzzle.com>
  *
  * Bluetooth-fct is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,10 @@ use Sabre\Xml\Writer;
 
 class Read extends Test
 {
+    public function getTestFillerValue()
+    {
+        return "AUTOTEST_TEST_" . $this->id . "_FILLER";
+    }
 
     public function runTest(Writer $writer)
     {
@@ -46,7 +50,7 @@ class Read extends Test
                         "attributes" => [
                             "description" => "AUTOMATED_TEST_" . $this->id . ": ",
                             "expected" => "SUCCESS_WARNING_ON_FAIL",
-                            "value" => "AUTOTEST_TEST_" . $this->id . "_FILLER"
+                            "value" => $this->getTestFillerValue()
                         ]
                     ]
                 ]
