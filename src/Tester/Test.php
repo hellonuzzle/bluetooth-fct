@@ -26,6 +26,7 @@
 namespace Alzander\BluetoothFCT\Tester;
 
 use Alzander\BluetoothFCT\MCPElements\DiscoverServices;
+use Alzander\BluetoothFCT\Validator\Validator;
 use Sabre\Xml\Writer;
 use Sabre\Xml\XmlSerializable;
 use League\Flysystem\Filesystem;
@@ -60,6 +61,8 @@ abstract class Test implements XmlSerializable
                     $this->addValidator($validator);
                 }
             }
+            else
+                $this->addValidator($this->testData->validation);
         }
     }
 
@@ -79,7 +82,7 @@ abstract class Test implements XmlSerializable
 
     public function getName()
     {
-        return $this->testData->description;
+        return isset($this->testData->name) ? $this->testData->name : "";
     }
 
     public function getTestFillerValue()
@@ -161,31 +164,31 @@ abstract class Test implements XmlSerializable
 
     public function runValidations()
     {
-        foreach ($this->validators as $validator) {
-            $value = null;
+        $pattern = $this->getTestFillerValue();
+        $value = null;
 
-            $pattern = $this->getTestFillerValue();
-            if ($pattern !== null) {
-                $pattern = "/^.*" . $pattern . ".*\$/m";
-                // search, and store all matching occurences in $matches
+        if ($pattern !== null) {
+            $pattern = "/^.*" . $pattern . ".*\$/m";
+            // search, and store all matching occurences in $matches
 
-                if (preg_match_all($pattern, $this->responseData, $matches)) {
-                    // Pull the actual return value out of the string that looks like
-                    // - Value of the characteristic '14' is not equal to 'AUTOTEST_TEST_1_FILLER'
-                    $valStart = strpos($matches[0][0], '\'');
-                    $valEnd = strpos($matches[0][0], '\'', $valStart + 1);
+            if (preg_match_all($pattern, $this->responseData, $matches)) {
+                // Pull the actual return value out of the string that looks like
+                // - Value of the characteristic '14' is not equal to 'AUTOTEST_TEST_1_FILLER'
+                $valStart = strpos($matches[0][0], '\'');
+                $valEnd = strpos($matches[0][0], '\'', $valStart + 1);
 
-                    $value = substr($matches[0][0], $valStart + 1, $valEnd - $valStart - 1);
+                $value = substr($matches[0][0], $valStart + 1, $valEnd - $valStart - 1);
 
-                    $this->io->writeLine("Running validation on response: " . $value);
+                $this->io->writeLine("Running validation on response: " . $value);
 
-                } else {
-                    $this->io->writeLine("<fail>Results file did not have any values for test.</fail>");
-                }
+            } else {
+                $this->io->writeLine("<fail>Results file did not have any values for test.</fail>");
             }
+        }
 
-            $this->io->writeLine("");
+        foreach ($this->validators as $validator) {
             $validator->validate($value);
+            $this->io->writeLine("");
         }
     }
 }

@@ -37,6 +37,7 @@ use Alzander\BluetoothFCT\DUT\BTDevice;
 use Sabre\Xml;
 use Alzander\BluetoothFCT\MCPElements\Target;
 
+use Carbon\Carbon;
 use Alzander\BluetoothFCT\Adb;
 
 class Runner
@@ -55,6 +56,7 @@ class Runner
         $this->flysystem = $flysystem;
         $this->io = $io;
 
+        date_default_timezone_set( 'UTC' );
         $this->adb = new Adb($io);
     }
 
@@ -108,8 +110,7 @@ class Runner
             $index++;
         }
 
-        foreach ($this->tests as $test)
-        {
+        foreach ($this->tests as $test) {
             // Each test needs to reconnect. Later, we'll try to chain tests together that can run without stopping
             foreach ($devices as $device)
                 $device->connected = false;
@@ -138,46 +139,69 @@ class Runner
         //$process->run();
         $testSuite = $this->testFile;
         $this->adb->setTestSuite($testSuite);
-
-        if (!$this->adb->devices())
-        {
+/*
+        if (!$this->adb->devices()) {
             $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
             return 4;
         }
-
-        foreach ($this->tests as $test) {
-            $this->io->writeLine("\n<bu>Starting test " . $test->id . ": " . $test->getName() . "</bu>");
-            $testName = "test_" . $test->id;
-
-            $this->adb->setTestName($testName);
-
-            $this->adb->removeOldResults();
-            $this->adb->uploadTestFile();
-            $this->adb->startTestService();
-            if (!$this->adb->fetchResultsFile())
-            {
-                $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
-                return 3;
-            }
-
-            $this->io->writeLine("");
-
-            // Fetch the results and have the test validate them.
-            $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
-
-            $test->setResponseData($results);
-            if ($test->checkForCriticalFailures())
-            {
-                $this->io->writeLine("\nTesting stopped.\n\n");
-                return 3;
-            }
-
-            $test->runValidations();
-
-            sleep(3);
+*/
+        if (isset($this->testObject->loop)) {
+            $loops = $this->testObject->loop->count;
+            $exitOnFail = (isset($this->testObject->loop->stopOnFail)) ? $this->testObject->loop->stopOnFail : false;
+            $looping = true;
+        } else {
+            $loops = 1;
+            $exitOnFail = false;
+            $looping = false;
         }
 
-        $this->printTestSummary();
+        $failCnt = 0;
+        $startTime = new Carbon;
+        for ($i = 1; $i <= $loops; $i++) {
+            if ($looping) {
+                $failText = $failCnt > 0 ? " (" . $failCnt . " failures)" : "            ";
+                $this->io->writeLine("\n<bu>       Loop " . $i . " / " . $loops . $failText . "</bu>");
+            }
+
+            foreach ($this->tests as $test) {
+                $this->io->writeLine("<bu>Starting test " . $test->id . ": " . $test->getName() . "</bu>");
+                $testName = "test_" . $test->id;
+
+                $this->adb->setTestName($testName);
+/*
+                $this->adb->removeOldResults();
+                $this->adb->uploadTestFile();
+                $this->adb->startTestService();
+                if (!$this->adb->fetchResultsFile()) {
+                    $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
+                    return 3;
+                }
+
+                $this->io->writeLine("");
+*/
+                // Fetch the results and have the test validate them.
+                $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
+
+                $test->setResponseData($results);
+                if ($test->checkForCriticalFailures()) {
+                    $this->io->writeLine("\nTesting stopped.\n\n");
+                    return 3;
+                }
+
+                $test->runValidations();
+
+//                sleep(3);
+            }
+
+            $allPass = $this->printTestSummary();
+            if (!$allPass) {
+                $failCnt++;
+
+                if ($exitOnFail)
+                    break;
+            }
+            $this->io->writeLine("  Total Test Time: " . $startTime->diff(new Carbon)->format("%Hh%im:%ss"));
+        }
         return 0;
     }
 
@@ -189,15 +213,18 @@ class Runner
         $passCnt = 0;
         $totalCnt = 0;
 
-        foreach ($this->tests as $test)
-        {
+        foreach ($this->tests as $test) {
             $subTest = 1;
-            foreach ($test->getValidationResults() as $validation)
-            {
+            foreach ($test->getValidationResults() as $validation) {
+                $tag = $validation->pass ? "pass" : "fail";
+                $testName = $test->getName();
+                if (isset($validation->name))
+                    $testName .= " - " . $validation->name;
+
                 $results =
                     [
-                        $test->id . "." . $subTest . " - " . $validation->name,
-                        $validation->result,
+                        "<" . $tag . ">" . $test->id . "." . $subTest . " - " . $testName . "</" . $tag . ">",
+                        "<" . $tag . ">" .$validation->result . "</" . $tag . ">",
                         $validation->output,
                     ];
                 $table->addRow($results);
@@ -216,8 +243,12 @@ class Runner
         $this->io->writeLine("Tests Failed: " . ($totalCnt - $passCnt));
 
         $table->render($this->io);
-        if ($passCnt == $totalCnt)
+        if ($passCnt == $totalCnt) {
             $this->io->writeLine("<pass>ALL TESTS PASSED!</pass>");
+            return true;
+        }
+
+        return false;
     }
 
 }

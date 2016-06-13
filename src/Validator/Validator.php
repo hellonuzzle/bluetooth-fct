@@ -27,7 +27,7 @@ namespace Alzander\BluetoothFCT\Validator;
 
 use Webmozart\Console\Api\IO\IO;
 
-abstract class Validator {
+class Validator {
     protected $params;
     protected $resultString;
     protected $io;
@@ -58,17 +58,20 @@ abstract class Validator {
         }
         else
         {
-            $this->io->writeLine("<fail>" . $this->resultName . "</fail> - " . $this->output);
+            $this->io->writeLine("<fail>" . $this->resultName . "</fail>: " . $this->output);
         }
 
         // First, par
     }
 
-    abstract protected function runValidationFor($val);
+    protected function runValidationFor($val)
+    {
+
+    }
 
     public function getName()
     {
-        return $this->params->name;
+        return isset($this->params->name) ? $this->params->name : null;
     }
 
     public function getResult()
