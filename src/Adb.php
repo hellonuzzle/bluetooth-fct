@@ -59,6 +59,7 @@ class Adb
         $deviceCnt = substr_count($output, "device");
         $deviceCnt--; // Remove the first line of "List of devices attached
         $this->io->writeLine($output);
+        $this->io->writeLine("");
         if ($deviceCnt == 1)
             return true;
         else
@@ -67,7 +68,7 @@ class Adb
 
     public function removeOldResults()
     {
-        $this->io->writeLine("Removing old results file...");
+//        $this->io->writeLine("Removing old results file...");
         $output = shell_exec('adb shell rm "/sdcard/AlzanderBT/Test/' . $this->testName . '_result.txt" > nul 2>&1');
     }
 
@@ -75,14 +76,14 @@ class Adb
     {
         $uploadFile = './fct/xmls/' . $this->testSuite . '/' . $this->testName . '.xml';
         $uploadLocation = '/sdcard/AlzanderBT/Test/' . $this->testName . '.xml';
-        $this->io->writeLine("Uploading new test file...");
+//        $this->io->writeLine("Uploading new test file...");
 //        $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
         $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
     }
 
     public function startTestService()
     {
-        $this->io->writeLine("Starting test service...");
+//        $this->io->writeLine("Starting test service...");
         $output = shell_exec('adb shell am startservice -a no.nordicsemi.android.action.START_TEST ' .
             '-e no.nordicsemi.android.test.extra.EXTRA_FILE_PATH "/sdcard/AlzanderBT/Test/' . $this->testName . '.xml" > nul 2>&1');
     }

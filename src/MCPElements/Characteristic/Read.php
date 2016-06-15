@@ -23,32 +23,27 @@
  *   along with bluetooth-fct.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Alzander\BluetoothFCT\Tester\Characteristic;
+namespace Alzander\BluetoothFCT\MCPElements\Characteristic;
 
-use Alzander\BluetoothFCT\Tester\Test;
+use Alzander\BluetoothFCT\MCPElements\MCPElement;
 use Sabre\Xml\Writer;
 
-class Read extends Test
+class Read extends MCPElement
 {
-    public function getTestFillerValue()
-    {
-        return "AUTOTEST_TEST_" . $this->id . "_FILLER";
-    }
-
-    public function runTest(Writer $writer)
+    public function xmlSerialize(Writer $writer)
     {
         $writer->write([
             "read" => [
                 "attributes" => [
-                    "description" => "Read temp sensor",
-                    "service-uuid" => $this->devices[$this->testData->target]->getService($this->testData->service)->UUID,
+                    "description" => $this->params->name,
+                    "service-uuid" => $this->target->getService($this->params->service)->UUID,
                     "characteristic-uuid" =>
-                        $this->devices[$this->testData->target]->getService($this->testData->service)->getCharacteristic($this->testData->characteristic)->UUID
+                        $this->target->getService($this->params->service)->getCharacteristic($this->params->characteristic)->UUID
                 ],
                 "value" => [
                     "assert-value" => [
                         "attributes" => [
-                            "description" => "AUTOMATED_TEST_" . $this->id . ": ",
+                            "description" => "AUTOMATED_TEST_" . $this->testId . ": ",
                             "expected" => "SUCCESS_WARNING_ON_FAIL",
                             "value" => $this->getTestFillerValue()
                         ]
@@ -56,5 +51,15 @@ class Read extends Test
                 ]
             ]
         ]);
+    }
+
+    protected function checkCriticalFailures($responseData)
+    {
+        $pattern = "- Reading characteristic failed";
+        $pattern = "/^.*" . $pattern . ".*\$/m";
+
+        if (preg_match_all($pattern, $responseData, $matches)) {
+            throw new \Exception("Read Characteristic failed.", 3);
+        }
     }
 }

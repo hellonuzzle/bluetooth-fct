@@ -25,11 +25,13 @@
 
 namespace Alzander\BluetoothFCT\Validator;
 
+use Webmozart\Console\IO\ConsoleIO;
 
 class Question extends Validator {
 
     protected function runValidationFor($val)
     {
+        $this->io = new ConsoleIO();
         $this->io->writeLine($this->params->question);
         $this->io->setInteractive(true);
 

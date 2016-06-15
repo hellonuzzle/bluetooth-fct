@@ -1,0 +1,44 @@
+{
+  "description": "Read the temperature characteristic",
+  "targets": [
+    {
+      "id": "DUT1",
+      "device": "example_device",
+      "address": "E8:A2:E4:A5:25:20"
+    }
+  ],
+  "loop": {
+    "count":"1",
+    "stopOnFail":true
+  },
+  "suites": [
+    {
+      "name": "Char Read Tests",
+      "target": "DUT1",
+      "tests": [
+        {
+          "name": "Read temperature",
+          "command": "characteristic.read",
+          "service": "temperature",
+          "characteristic": "value",
+          "validation": {
+            "type": "temperature",
+            "min": "30",
+            "max": "35"
+          }
+        },
+        {
+          "name": "Read Battery",
+          "command": "characteristic.read",
+          "service": "battery",
+          "characteristic": "value",
+          "validation": {
+            "type": "range",
+            "min": "0",
+            "max": "100"
+          }
+        }
+      ]
+    }
+  ]
+}

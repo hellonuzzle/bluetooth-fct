@@ -26,21 +26,15 @@
 namespace Alzander\BluetoothFCT\MCPElements;
 
 use Sabre\Xml\Writer;
-use Sabre\Xml\XmlSerializable;
 
-class RunTest implements XmlSerializable
+class RunTest extends MCPElement
 {
-    public function __construct($testName)
-    {
-        $this->testName = $testName;
-    }
-
     public function xmlSerialize(Writer $writer)
     {
         $writer->write([
                 'run-test' => [
                     'attributes' => [
-                        'ref' => $this->testName
+                        'ref' => $this->params->test
                     ]
                 ]
             ]

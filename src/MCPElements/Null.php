@@ -23,9 +23,9 @@
  *   along with bluetooth-fct.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Alzander\BluetoothFCT\Tester;
+namespace Alzander\BluetoothFCT\MCPElements;
 
-use Alzander\BluetoothFCT\Tester\Test;
+use Alzander\BluetoothFCT\MCPElements\MCPElement;
 use Sabre\Xml\Writer;
 
 /**
@@ -34,10 +34,10 @@ use Sabre\Xml\Writer;
  *
  * @package Alzander\BluetoothFCT\Tester\Characteristic
  */
-class Null extends Test
+class Null extends MCPElement
 {
 
-    public function runTest(Writer $writer)
+    public function xmlSerialize(Writer $writer)
     {
     }
 }

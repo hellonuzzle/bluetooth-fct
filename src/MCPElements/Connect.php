@@ -28,35 +28,44 @@ use Alzander\BluetoothFCT\DUT\BTDevice;
 use Sabre\Xml\Writer;
 use Sabre\Xml\XmlSerializable;
 
-class Connect implements XmlSerializable
+class Connect extends MCPElement
 {
-
     protected $timeout;
-
-    public function __construct(BTDevice $device, $discover, $bond)
-    {
-        $this->device = $device;
-        $this->shouldDiscover = $discover;
-        $this->shouldBond = $bond;
-    }
 
     public function xmlSerialize(Writer $writer)
     {
-        if (!$this->device->connected) {
+        if (!$this->target->connected) {
             $writer->write([
                 'connect' => [
-                    'attributes' => ['timeout' => $this->device->timeouts['connect']]
+                    'attributes' => ['timeout' => $this->target->timeouts['connect']]
                 ],
-                new Refresh(),
-                new Sleep(5000),
+                new Refresh(null),
+                new Sleep(['timeout' => 5000]),
             ]);
-            $this->device->connected = true;
+            //$this->device->connected = true;
         }
 
-        if ($this->shouldDiscover)
-            $writer->write([
-                new DiscoverServices($this->device->id, $this->device->timeouts['discover'])
-            ]);
+        foreach ($this->subElements as $element)
+            $writer->write([$element]);
 
     }
+
+    protected function checkCriticalFailures($responseData)
+    {
+        $pattern = "Connect...FAIL";
+        $pattern = "/^.*" . $pattern . ".*\$/m";
+
+        if (preg_match_all($pattern, $responseData, $matches)) {
+            throw new \Exception("Could not connect to device.", 3);
+        }
+    }
+
+    protected function parseSubElements()
+    {
+        if ($this->params->shouldDiscover) {
+            $discover = new DiscoverServices(null, $this->target);
+            array_push($this->subElements, $discover);
+        }
+    }
+
 }

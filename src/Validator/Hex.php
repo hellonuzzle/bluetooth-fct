@@ -31,6 +31,7 @@ class Hex extends Validator
 
     protected function runValidationFor($val)
     {
+        echo "Value: " . $val;
         if (isset($this->params->expected) && $this->params->expected != $val) {
             $this->resultName = "Fail";
             $this->pass = false;

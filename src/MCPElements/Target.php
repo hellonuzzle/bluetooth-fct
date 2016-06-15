@@ -25,29 +25,19 @@
 
 namespace Alzander\BluetoothFCT\MCPElements;
 
-use Alzander\BluetoothFCT\DUT\BTDevice;
 use Sabre\Xml\Writer;
-use Sabre\Xml\XmlSerializable;
 
-class Target implements XmlSerializable
+class Target extends MCPElement
 {
-
-    protected $timeout;
-
-    public function __construct(BTDevice $device, $timeout = 10000)
-    {
-        $this->device = $device;
-        $this->timeout = $timeout;
-    }
 
     public function xmlSerialize(Writer $writer)
     {
         $writer->write([
                 'target' => [
                     'attributes' => [
-                        'id' => $this->device->id,
-                        'name' => $this->device->name,
-                        'address' => $this->device->address
+                        'id' => $this->target->id,
+                        'name' => $this->target->name,
+                        'address' => $this->target->address
                     ]
                 ]
             ]

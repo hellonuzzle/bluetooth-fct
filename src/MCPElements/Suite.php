@@ -26,29 +26,47 @@
 namespace Alzander\BluetoothFCT\MCPElements;
 
 use Sabre\Xml\Writer;
-use Sabre\Xml\XmlSerializable;
 
-class DiscoverServices extends MCPElement {
+class Suite extends MCPElement
+{
+    public function getName()
+    {
+        return $this->params->name;
+    }
 
     public function xmlSerialize(Writer $writer)
     {
         $writer->write([
-            'discover-services' => [
+            new Target(null, $this->target),
+            'test' => [
                 'attributes' => [
                     'target' => $this->target->id,
-                    'timeout' => $this->target->timeouts['discover']
-                ]
-            ]
+                    'id' => "auto_test"
+                ],
+                'value' => [
+                    function () use ($writer) {
+                        foreach ($this->subElements as $element)
+                            $element->xmlSerialize($writer);
+                    },
+                ],
+            ],
+            new RunTest(['test' => "auto_test"])
         ]);
+
     }
 
-    protected function checkCriticalFailures($responseData)
+    protected function parseSubElements()
     {
-        $pattern = "Discover-Services...FAIL";
-        $pattern = "/^.*" . $pattern . ".*\$/m";
+        $connect = new Connect(['shouldDiscover' => true], $this->target);
+        array_push($this->subElements, $connect);
 
-        if (preg_match_all($pattern, $responseData, $matches)) {
-            throw new \Exception("Discover services failed.", 3);
+        foreach ($this->params->tests as $test)
+        {
+            $testParts = explode(".", $test->command);
+            $testName = "Alzander\\BluetoothFCT\\MCPElements\\" . implode("\\", $testParts);
+            $test = new $testName($test, $this->target);
+//            array_push($this->suites[$suiteId]->tests, $test);
+            array_push($this->subElements, $test);
         }
     }
 

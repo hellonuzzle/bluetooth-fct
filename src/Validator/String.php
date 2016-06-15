@@ -36,7 +36,7 @@ class String extends Validator
         for ($i = 0; $i < strlen($val) - 1; $i += 2) {
             $string .= chr(hexdec($val[$i] . $val[$i + 1]));
         }
-        $this->io->writeLine("Value: " . $string);
+        echo "Value: " . $string . "\n";
 
         if (isset($this->params->expected) && $this->params->expected != $string) {
             $this->resultName = "Fail";

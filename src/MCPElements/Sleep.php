@@ -27,19 +27,13 @@ namespace Alzander\BluetoothFCT\MCPElements;
 use Sabre\Xml\Writer;
 use Sabre\Xml\XmlSerializable;
 
-class Sleep implements XmlSerializable {
-
-    protected $timeout;
-    public function __construct($timeout = 5000)
-    {
-        $this->timeout = $timeout;
-    }
+class Sleep extends MCPElement {
 
     public function xmlSerialize(Writer $writer)
     {
         $writer->write([
             'sleep' => [
-                'attributes' => ['timeout' => $this->timeout]
+                'attributes' => ['timeout' => $this->params->timeout]
             ]
         ]);
     }

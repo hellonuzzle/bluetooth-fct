@@ -27,6 +27,7 @@ namespace Alzander\BluetoothFCT;
 
 use Alzander\BluetoothFCT\MCPElements\RunTest;
 use League\Flysystem\Filesystem;
+use Symfony\Component\Config\Definition\Exception\Exception;
 use Webmozart\Console\Api\IO\IO;
 
 use Webmozart\Console\UI\Component\Table;
@@ -39,6 +40,7 @@ use Alzander\BluetoothFCT\MCPElements\Target;
 
 use Carbon\Carbon;
 use Alzander\BluetoothFCT\Adb;
+use Alzander\BluetoothFCT\MCPElements\Suite;
 
 class Runner
 {
@@ -48,7 +50,7 @@ class Runner
     protected $io;
     protected $testObject;
 
-    protected $tests = array();
+    protected $suites = array();
 
     public function __construct($testFile, IO $io, Filesystem $flysystem)
     {
@@ -56,7 +58,7 @@ class Runner
         $this->flysystem = $flysystem;
         $this->io = $io;
 
-        date_default_timezone_set( 'UTC' );
+        date_default_timezone_set('UTC');
         $this->adb = new Adb($io);
     }
 
@@ -101,32 +103,15 @@ class Runner
         }
 
         // Then, setup each test to be run
-        $index = 1;
-        foreach ($this->testObject->tests as $testData) {
-            $testParts = explode(".", $testData->command);
-            $testName = "Alzander\\BluetoothFCT\\Tester\\" . implode("\\", $testParts);
-            $test = new $testName($devices, $testData, $this->io, $index);
-            array_push($this->tests, $test);
-            $index++;
-        }
+        $suiteId = 1;
+        foreach ($this->testObject->suites as $suite) {
+            $testSuite = new Suite($suite, $devices[$suite->target]);
+            $this->suites[$suiteId] = $testSuite;
 
-        foreach ($this->tests as $test) {
-            // Each test needs to reconnect. Later, we'll try to chain tests together that can run without stopping
-            foreach ($devices as $device)
-                $device->connected = false;
+            $data = $xml->write('test-suite', $testSuite);
 
-            $data = $xml->write('test-suite', [
-                function ($writer) use ($devices) {
-                    foreach ($devices as $device) {
-                        $target = new Target($device);
-                        $writer->write($target);
-                    }
-                },
-                $test,
-                new RunTest("test_" . $test->id)
-            ]);
-
-            $this->flysystem->write('/xmls/' . $this->testFile . '/test_' . $test->id . '.xml', $data);
+            $this->flysystem->write('/xmls/' . $this->testFile . '/suite_' . $suiteId . '.xml', $data);
+            $suiteId++;
         }
     }
 
@@ -135,16 +120,14 @@ class Runner
         $this->io->writeLine("Running tests");
         $this->adb->checkAdbVersion();
 
-        //$process = new Process('adb');
-        //$process->run();
         $testSuite = $this->testFile;
         $this->adb->setTestSuite($testSuite);
-/*
+
         if (!$this->adb->devices()) {
             $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
             return 4;
         }
-*/
+
         if (isset($this->testObject->loop)) {
             $loops = $this->testObject->loop->count;
             $exitOnFail = (isset($this->testObject->loop->stopOnFail)) ? $this->testObject->loop->stopOnFail : false;
@@ -163,12 +146,11 @@ class Runner
                 $this->io->writeLine("\n<bu>       Loop " . $i . " / " . $loops . $failText . "</bu>");
             }
 
-            foreach ($this->tests as $test) {
-                $this->io->writeLine("<bu>Starting test " . $test->id . ": " . $test->getName() . "</bu>");
-                $testName = "test_" . $test->id;
+            foreach ($this->suites as $suiteId => $suite) {
+                $this->io->writeLine("<bu>Starting Test Suite " . $suiteId . ": " . $suite->getName() . "</bu>");
 
-                $this->adb->setTestName($testName);
-/*
+                $this->adb->setTestName('suite_' . $suiteId);
+
                 $this->adb->removeOldResults();
                 $this->adb->uploadTestFile();
                 $this->adb->startTestService();
@@ -178,19 +160,25 @@ class Runner
                 }
 
                 $this->io->writeLine("");
-*/
+
                 // Fetch the results and have the test validate them.
-                $results = $this->flysystem->read("results/test_" . $test->id . "_result.txt");
+                $results = $this->flysystem->read("results/suite_" . $suiteId . "_result.txt");
 
-                $test->setResponseData($results);
-                if ($test->checkForCriticalFailures()) {
-                    $this->io->writeLine("\nTesting stopped.\n\n");
-                    return 3;
+                ob_start();
+                try {
+                    $suite->runValidations($results);
                 }
+                catch (Exception $e)
+                {
+                    $output = ob_get_clean();
+                    $this->io->write($output);
+                    $this->io->write("<fail>CRITICAL FAILURE: </fail>" . $e->getMessage());
+                    $this->io->writeLine("\nTesting stopped.\n\n");
+                    return $e->getCode();;
+                }
+                $output = ob_get_clean();
 
-                $test->runValidations();
-
-//                sleep(3);
+                $this->io->write($output);
             }
 
             $allPass = $this->printTestSummary();
@@ -213,28 +201,43 @@ class Runner
         $passCnt = 0;
         $totalCnt = 0;
 
-        foreach ($this->tests as $test) {
-            $subTest = 1;
-            foreach ($test->getValidationResults() as $validation) {
-                $tag = $validation->pass ? "pass" : "fail";
-                $testName = $test->getName();
-                if (isset($validation->name))
-                    $testName .= " - " . $validation->name;
+        $suiteId = 1;
+        foreach ($this->suites as $suite) {
+            $elementId = 1;
+            foreach ($suite->subElements as $element)
+            {
+                $testId = 1;
+                $hasValidators = false;
+                foreach ($element->validators as $validator) {
+                    $hasValidators = true;
 
-                $results =
-                    [
-                        "<" . $tag . ">" . $test->id . "." . $subTest . " - " . $testName . "</" . $tag . ">",
-                        "<" . $tag . ">" .$validation->result . "</" . $tag . ">",
-                        $validation->output,
-                    ];
-                $table->addRow($results);
+                    $tag = $validator->getPassFail() ? "pass" : "fail";
+                    $testName = $element->getName();
+                    if ($validator->getName())
+                        $testName .= ": " . $validator->getName();
 
-                if ($validation->pass)
-                    $passCnt++;
-                $totalCnt++;
+                    $index = $suiteId . "." . $elementId;
+                    if (count($element->validators) > 1)
+                        $index .= "." . $testId;
 
-                $subTest++;
+                    $results =
+                        [
+                            "<" . $tag . ">" . $index . " - " . $testName . "</" . $tag . ">",
+                            "<" . $tag . ">" . $validator->getResult() . "</" . $tag . ">",
+                            $validator->getOutput(),
+                        ];
+                    $table->addRow($results);
+
+                    if ($validator->getPassFail())
+                        $passCnt++;
+                    $totalCnt++;
+
+                    $testId++;
+                }
+                if ($hasValidators)
+                    $elementId++;
             }
+            $suiteId++;
         }
 
         $this->io->writeLine("\n<b>Test Summary:</b>\n");

@@ -26,9 +26,8 @@
 namespace Alzander\BluetoothFCT\MCPElements;
 
 use Sabre\Xml\Writer;
-use Sabre\Xml\XmlSerializable;
 
-class Refresh implements XmlSerializable {
+class Refresh extends MCPElement {
 
     public function xmlSerialize(Writer $writer)
     {
