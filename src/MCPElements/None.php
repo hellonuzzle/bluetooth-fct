@@ -29,12 +29,12 @@ use Alzander\BluetoothFCT\MCPElements\MCPElement;
 use Sabre\Xml\Writer;
 
 /**
- * Class Null
+ * Class None
  * Does nothing. Allows for a BT connection without any other commands
  *
  * @package Alzander\BluetoothFCT\Tester\Characteristic
  */
-class Null extends MCPElement
+class None extends MCPElement
 {
 
     public function xmlSerialize(Writer $writer)

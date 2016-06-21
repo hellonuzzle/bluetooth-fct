@@ -26,7 +26,7 @@
 namespace Alzander\BluetoothFCT\Validator;
 
 
-class String extends Validator
+class Characters extends Validator
 {
 
     protected function runValidationFor($val)
