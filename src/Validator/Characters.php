@@ -38,12 +38,12 @@ class Characters extends Validator
         }
         echo "Value: " . $string . "\n";
 
+        $this->value = $string;
+
         if (isset($this->params->expected) && $this->params->expected != $string) {
-            $this->resultName = "Fail";
             $this->pass = false;
             $this->output = $string . " :: not equal to : " . $this->params->expected;
         } else {
-            $this->resultName = "Pass";
             $this->pass = true;
             $this->output = $string;
         }

@@ -28,6 +28,7 @@ use Webmozart\Console\Config\DefaultApplicationConfig;
 use Alzander\BluetoothFCT\Commands\RunCommandHandler;
 use Alzander\BluetoothFCT\Commands\GenerateXMLCommandHandler;
 use Webmozart\Console\Api\Args\Format\Argument;
+use Webmozart\Console\Api\Args\Format\Option;
 use Webmozart\Console\Api\Formatter\Style;
 
 use League\Flysystem\Filesystem;
@@ -56,11 +57,14 @@ class BluetoothFCTApplicationConfig extends DefaultApplicationConfig
         $this->beginCommand("run")
             ->setDescription("Runs the test file specified. Generates the XML files as well.")
             ->setHandler(new RunCommandHandler($this->filesystem) )
-            ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json');
+            ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json')
+            ->addOption('log', null, Option::OPTIONAL_VALUE, 'Filename to log data to. ', null, 'log')
+        ->end();
 
         $this->beginCommand("generateXML")
             ->setDescription("Generates the XML test file for MCP from the input JSON file")
             ->setHandler(new GenerateXMLCommandHandler($this->filesystem) )
-            ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json');
+            ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json')
+        ->end();
     }
 }

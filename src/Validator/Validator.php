@@ -31,7 +31,6 @@ class Validator {
     protected $io;
 
     protected $pass;
-    protected $resultName;
     protected $output;
 
     public function __construct($params)
@@ -48,17 +47,6 @@ class Validator {
     public function validate($val)
     {
         $this->runValidationFor($val);
-/*
-        if ($this->pass)
-        {
-            $this->io->writeLine("<pass>" . $this->resultName . "</pass>");
-        }
-        else
-        {
-            $this->io->writeLine("<fail>" . $this->resultName . "</fail>: " . $this->output);
-        }
-*/
-        // First, par
     }
 
     protected function runValidationFor($val)
@@ -73,7 +61,7 @@ class Validator {
 
     public function getResult()
     {
-        return $this->resultName;
+        return $this->pass ? "Pass" : "Fail";
     }
 
     public function getOutput()

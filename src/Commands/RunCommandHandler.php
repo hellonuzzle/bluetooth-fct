@@ -46,7 +46,9 @@ class RunCommandHandler
     {
         $testFile = $args->getArgument('test');
 
-        $runner = new Runner($testFile, $io, $this->flysystem);
+        $logFile = $args->getOption('log');
+
+        $runner = new Runner($testFile, $io, $this->flysystem, $logFile);
         $runner->generateXMLs();
 
         return $runner->runTests();

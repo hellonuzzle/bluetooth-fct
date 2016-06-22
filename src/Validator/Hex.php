@@ -32,12 +32,12 @@ class Hex extends Validator
     protected function runValidationFor($val)
     {
         echo "Value: " . $val;
+
+        $this->value = $val;
         if (isset($this->params->expected) && $this->params->expected != $val) {
-            $this->resultName = "Fail";
             $this->pass = false;
             $this->output = $val . " :: not equal to : " . $this->params->expected;
         } else {
-            $this->resultName = "Pass";
             $this->pass = true;
             $this->output = $val;
         }

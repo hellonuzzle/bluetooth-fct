@@ -48,7 +48,7 @@ class Question extends Validator {
                 $input = substr($readValue, -$len);
                 //$this->io->writeLine("Comparing " . $option->value . " with input " . $input);
                 if (strtolower($input) == strtolower($option->value)) {
-                    $this->resultName = $option->result;
+                    $this->value = $option->value;
                     $this->pass = $option->pass;
                     $this->output = $option->name;
                     $validResponse = true;

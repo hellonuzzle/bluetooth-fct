@@ -51,8 +51,10 @@ class Runner
     protected $testObject;
 
     protected $suites = array();
+    protected $logfile;
+    private $logHeaderWritten = false;
 
-    public function __construct($testFile, IO $io, Filesystem $flysystem)
+    public function __construct($testFile, IO $io, Filesystem $flysystem, $logfile = null)
     {
         $this->testFile = $testFile;
         $this->flysystem = $flysystem;
@@ -60,6 +62,33 @@ class Runner
 
         date_default_timezone_set('UTC');
         $this->adb = new Adb($io);
+
+        $this->setupLogFile($logfile);
+    }
+
+    private function setupLogfile($logfile)
+    {
+        if (!$logfile)
+            return;
+
+        if (!$this->flysystem->has('results/logs/' . $logfile . '.csv'))
+        {
+            $this->logfile = './fct/results/logs/' . $logfile . '.csv';
+            return;
+        }
+
+        // Figure out if we should increment the log
+        $found = false;
+        $index = 1;
+        while (!$found)
+        {
+            if (!$this->flysystem->has('results/logs/' . $logfile . '-' . $index . '.csv'))
+            {
+                $this->logfile = './fct/results/logs/' . $logfile . '-' . $index . '.csv';
+                $found = true;
+            }
+            $index++;
+        }
     }
 
     public function generateXMLs()
@@ -167,9 +196,7 @@ class Runner
                 ob_start();
                 try {
                     $suite->runValidations($results);
-                }
-                catch (Exception $e)
-                {
+                } catch (Exception $e) {
                     $output = ob_get_clean();
                     $this->io->write($output);
                     $this->io->write("<fail>CRITICAL FAILURE: </fail>" . $e->getMessage());
@@ -202,13 +229,18 @@ class Runner
         $totalCnt = 0;
 
         $suiteId = 1;
+
+
+        $header = array('Date');
+        $values = array(new Carbon);
+
         foreach ($this->suites as $suite) {
             $elementId = 1;
-            foreach ($suite->subElements as $element)
-            {
+            foreach ($suite->subElements as $element) {
                 $testId = 1;
                 $hasValidators = false;
                 foreach ($element->validators as $validator) {
+
                     $hasValidators = true;
 
                     $tag = $validator->getPassFail() ? "pass" : "fail";
@@ -230,6 +262,13 @@ class Runner
 
                     if ($validator->getPassFail())
                         $passCnt++;
+
+                    if ($this->logfile)
+                    {
+                        array_push($header, $testName);
+                        array_push($values, $validator->value);
+                    }
+
                     $totalCnt++;
 
                     $testId++;
@@ -238,6 +277,25 @@ class Runner
                     $elementId++;
             }
             $suiteId++;
+        }
+
+        if ($this->logfile)
+        {
+            $fh = fopen($this->logfile, 'a');
+            if (!$this->logHeaderWritten)
+            {
+                $csv = implode('","', $header);
+                $csv = '"'.$csv.'"' . "\n";
+//                $this->flysystem->put($this->logfile, $csv);
+                fwrite($fh, $csv);
+                $this->logHeaderWritten = true;
+            }
+
+            $csv = implode('","', $values);
+            $csv = '"'.$csv.'"' . "\n";
+            fwrite($fh, $csv);
+//            $this->flysystem->put($this->logfile, $csv);
+            fclose($fh);
         }
 
         $this->io->writeLine("\n<b>Test Summary:</b>\n");
