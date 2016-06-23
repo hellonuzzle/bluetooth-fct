@@ -26,7 +26,6 @@
 namespace Alzander\BluetoothFCT\MCPElements;
 
 use Sabre\Xml\XmlSerializable;
-use Webmozart\Console\Api\IO\IO;
 
 abstract class MCPElement implements XmlSerializable
 {
@@ -93,20 +92,6 @@ abstract class MCPElement implements XmlSerializable
     {
         return "AUTOTEST_TEST_" . $this->testId . "_FILLER";
     }
-
-
-/*    public function checkForCriticalFailures()
-    {
-        $pattern = "Connect...FAIL";
-        $pattern = "/^.*" . $pattern . ".*\$/m";
-
-        if (preg_match_all($pattern, $this->responseData, $matches)) {
-            $this->io->writeLine("<fail>CRITICAL FAILURE: </fail>Could not connect to device.");
-            return true;
-        }
-        return false;
-    }
-*/
 
     public function runValidations($responseData)
     {

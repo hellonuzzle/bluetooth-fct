@@ -159,17 +159,21 @@ class Runner
 
         if (isset($this->testObject->loop)) {
             $loops = $this->testObject->loop->count;
-            $exitOnFail = (isset($this->testObject->loop->stopOnFail)) ? $this->testObject->loop->stopOnFail : false;
+            $exitOnFail = isset($this->testObject->loop->stopOnFail) ? $this->testObject->loop->stopOnFail : false;
             $looping = true;
+            $interval = isset($this->testObject->loop->interval) ? $this->testObject->loop->interval : 0;
         } else {
             $loops = 1;
             $exitOnFail = false;
             $looping = false;
+            $interval = 0;
         }
 
         $failCnt = 0;
         $startTime = new Carbon;
+
         for ($i = 1; $i <= $loops; $i++) {
+            $connectivityError = false;
             if ($looping) {
                 $failText = $failCnt > 0 ? " (" . $failCnt . " failures)" : "            ";
                 $this->io->writeLine("\n<bu>       Loop " . $i . " / " . $loops . $failText . "</bu>");
@@ -196,26 +200,42 @@ class Runner
                 ob_start();
                 try {
                     $suite->runValidations($results);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
+                    $failCnt++;
+
                     $output = ob_get_clean();
                     $this->io->write($output);
-                    $this->io->write("<fail>CRITICAL FAILURE: </fail>" . $e->getMessage());
-                    $this->io->writeLine("\nTesting stopped.\n\n");
-                    return $e->getCode();;
+                    $this->io->write("<fail>CONNECTIVITY FAILURE: </fail>" . $e->getMessage() . "\n");
+                    if ($exitOnFail) {
+                        $this->io->writeLine("Testing stopped.\n\n");
+                        return $e->getCode();
+                    }
+                    else {
+                        $connectivityError = true;
+                        break;
+                    }
                 }
                 $output = ob_get_clean();
 
                 $this->io->write($output);
             }
 
-            $allPass = $this->printTestSummary();
-            if (!$allPass) {
-                $failCnt++;
+            if (!$connectivityError) {
+                $allPass = $this->printTestSummary();
+                if (!$allPass) {
+                    $failCnt++;
 
-                if ($exitOnFail)
-                    break;
+                    if ($exitOnFail)
+                        break;
+                }
             }
             $this->io->writeLine("  Total Test Time: " . $startTime->diff(new Carbon)->format("%Hh%im:%ss"));
+
+            if (!$connectivityError && $interval > 0) { // Connectivity problems should just be immediately retried
+                $this->io->writeLine("  ... Sleeping for " . $interval . " seconds ...");
+                sleep($interval);
+            }
+
         }
         return 0;
     }

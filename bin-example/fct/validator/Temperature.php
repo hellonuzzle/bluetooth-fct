@@ -23,20 +23,20 @@ class Temperature extends Range {
     {
 //        $this->io->writeLine("Raw temp: " . $val);
         $val = hexdec($val);
-        $val = $val - 40; // Now we're in Celsius
+        $val = $val - 40; // Process the value received in some way
         $this->io->writeLine("Processed temp: " . $val . "C / " . (($val * 1.8) + 32) . "F");
 
         $min = $this->test->validation->min;
         $max = $this->test->validation->max;
 
+        $this->value = $val;
+
         if ($val >= $min && $val <= $max)
         {
-            $this->resultName = "Pass";
             $this->pass = true;
         }
         else {
             $this->output = $val . "C is not within " . $min . "C to " . $max . "C";
-            $this->resultName = "Fail";
             $this->pass = false;
         }
     }
