@@ -46,6 +46,15 @@ class Validator {
      */
     public function validate($val)
     {
+        if (isset($this->params->element))
+        {
+            $data = str_split($val);
+            $start = floor($this->params->element->offset / 4);
+            $length = ceil($this->params->element->length / 4);
+            $pieces = array_splice($data, $start, $length);
+            $val = implode($pieces);
+            echo $val;
+        }
         $this->runValidationFor($val);
     }
 

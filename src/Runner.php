@@ -51,44 +51,20 @@ class Runner
     protected $testObject;
 
     protected $suites = array();
-    protected $logfile;
+    protected $logFile;
+    protected $logParameter;
     private $logHeaderWritten = false;
 
-    public function __construct($testFile, IO $io, Filesystem $flysystem, $logfile = null)
+    public function __construct($testFile, IO $io, Filesystem $flysystem, $logFile = null)
     {
         $this->testFile = $testFile;
         $this->flysystem = $flysystem;
+        $this->logParameter = $logFile;
         $this->io = $io;
 
         date_default_timezone_set('UTC');
         $this->adb = new Adb($io);
 
-        $this->setupLogFile($logfile);
-    }
-
-    private function setupLogfile($logfile)
-    {
-        if (!$logfile)
-            return;
-
-        if (!$this->flysystem->has('results/logs/' . $logfile . '.csv'))
-        {
-            $this->logfile = './fct/results/logs/' . $logfile . '.csv';
-            return;
-        }
-
-        // Figure out if we should increment the log
-        $found = false;
-        $index = 1;
-        while (!$found)
-        {
-            if (!$this->flysystem->has('results/logs/' . $logfile . '-' . $index . '.csv'))
-            {
-                $this->logfile = './fct/results/logs/' . $logfile . '-' . $index . '.csv';
-                $found = true;
-            }
-            $index++;
-        }
     }
 
     public function generateXMLs()
@@ -144,8 +120,48 @@ class Runner
         }
     }
 
+    /**
+     * Setup the logFile for writing results. Use the passed in log parameters, if set.
+     * If not, check for a log parameter in the test file to use.
+     */
+    private function setupLogFile()
+    {
+        $this->flysystem->createDir('results/logs');
+
+        $append = false;
+        if (!$this->logParameter && isset($this->testObject->log)) {
+            $append = isset($this->testObject->log->append) ? $this->testObject->log->append : $append;
+            $this->logParameter = $this->testObject->log->file;
+        }
+
+        if (!$this->logParameter)
+            return;
+
+        if (!$this->flysystem->has('results/logs/' . $this->logParameter . '.csv')) {
+            $this->logFile = './fct/results/logs/' . $this->logParameter . '.csv';
+            return;
+        } else if ($append) {
+            $this->logFile = './fct/results/logs/' . $this->logParameter . '.csv';
+            $this->logHeaderWritten = true;
+            return;
+        }
+
+        // Figure out if we should increment the log
+        $found = false;
+        $index = 1;
+        while (!$found) {
+            if (!$this->flysystem->has('results/logs/' . $this->logParameter . '-' . $index . '.csv')) {
+                $this->logFile = './fct/results/logs/' . $this->logParameter . '-' . $index . '.csv';
+                $found = true;
+            }
+            $index++;
+        }
+    }
+
     public function runTests()
     {
+        $this->setupLogFile();
+
         $this->io->writeLine("Running tests");
         $this->adb->checkAdbVersion();
 
@@ -206,11 +222,17 @@ class Runner
                     $output = ob_get_clean();
                     $this->io->write($output);
                     $this->io->write("<fail>CONNECTIVITY FAILURE: </fail>" . $e->getMessage() . "\n");
+
+                    $values = array(new Carbon, $this->testObject->targets[0]->address, $e->getMessage());
+
+                    $data = implode('","', $values);
+                    $csv = '"' . $data . '"' . "\n";
+                    $this->writeToLog($csv);
+
                     if ($exitOnFail) {
                         $this->io->writeLine("Testing stopped.\n\n");
                         return $e->getCode();
-                    }
-                    else {
+                    } else {
                         $connectivityError = true;
                         break;
                     }
@@ -251,8 +273,8 @@ class Runner
         $suiteId = 1;
 
 
-        $header = array('Date');
-        $values = array(new Carbon);
+        $header = array('Date', "BT Address");
+        $values = array(new Carbon, $this->testObject->targets[0]->address);
 
         foreach ($this->suites as $suite) {
             $elementId = 1;
@@ -283,8 +305,7 @@ class Runner
                     if ($validator->getPassFail())
                         $passCnt++;
 
-                    if ($this->logfile)
-                    {
+                    if ($this->logFile) {
                         array_push($header, $testName);
                         array_push($values, $validator->value);
                     }
@@ -299,24 +320,19 @@ class Runner
             $suiteId++;
         }
 
-        if ($this->logfile)
-        {
-            $fh = fopen($this->logfile, 'a');
-            if (!$this->logHeaderWritten)
-            {
-                $csv = implode('","', $header);
-                $csv = '"'.$csv.'"' . "\n";
-//                $this->flysystem->put($this->logfile, $csv);
-                fwrite($fh, $csv);
-                $this->logHeaderWritten = true;
-            }
-
-            $csv = implode('","', $values);
-            $csv = '"'.$csv.'"' . "\n";
-            fwrite($fh, $csv);
-//            $this->flysystem->put($this->logfile, $csv);
-            fclose($fh);
+        // Generate CSV log data
+        $csv = "";
+        if (!$this->logHeaderWritten) {
+            $data = implode('","', $header);
+            $csv = '"' . $data . '"' . "\n";
+//                $this->flysystem->put($this->logFile, $csv);
+            $this->logHeaderWritten = true;
         }
+
+        $data = implode('","', $values);
+        $csv .= '"' . $data . '"' . "\n";
+        $this->writeToLog($csv);
+        // End log file creation
 
         $this->io->writeLine("\n<b>Test Summary:</b>\n");
         $this->io->writeLine("Total Tests: " . $totalCnt);
@@ -330,6 +346,15 @@ class Runner
         }
 
         return false;
+    }
+
+    private function writeToLog($data)
+    {
+        if ($this->logFile) {
+            $fh = fopen($this->logFile, 'a');
+            fwrite($fh, $data);
+            fclose($fh);
+        }
     }
 
 }

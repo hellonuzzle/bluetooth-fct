@@ -55,6 +55,13 @@ class Read extends MCPElement
 
     protected function checkCriticalFailures($responseData)
     {
+        $pattern = "- Service \([a-z0-9 ,-=]*\) not found";
+        $pattern = "/^.*" . $pattern . ".*\$/m";
+
+        if (preg_match_all($pattern, $responseData, $matches)) {
+            throw new \Exception("Service not found.", 3);
+        }
+
         $pattern = "- Reading characteristic failed";
         $pattern = "/^.*" . $pattern . ".*\$/m";
 

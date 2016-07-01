@@ -51,7 +51,7 @@ abstract class MCPElement implements XmlSerializable
             } else
                 $this->addValidator($this->params->validation);
         }
-        $this->testId = uniqid();
+        $this->testId = uniqid("", true);
     }
 
     protected function parseSubElements()
