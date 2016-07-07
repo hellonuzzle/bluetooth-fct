@@ -54,6 +54,7 @@ class Adb
 
     public function devices()
     {
+        $this->io->writeLine("Searching for Android devices...");
         $output = shell_exec('adb devices');
 
         $deviceCnt = substr_count($output, "device");
@@ -90,7 +91,6 @@ class Adb
 
     public function fetchResultsFile()
     {
-        $this->io->writeLine("Waiting for test results...");
         $keepGoing = true;
         $i = 0;
         while ($keepGoing) {

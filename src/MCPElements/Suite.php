@@ -48,6 +48,7 @@ class Suite extends MCPElement
                         foreach ($this->subElements as $element)
                             $element->xmlSerialize($writer);
                     },
+                    //new Disconnect($this->target->id),
                 ],
             ],
             new RunTest(['test' => "auto_test"])

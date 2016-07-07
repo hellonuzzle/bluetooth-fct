@@ -27,7 +27,6 @@ namespace Alzander\BluetoothFCT;
 
 use Alzander\BluetoothFCT\MCPElements\RunTest;
 use League\Flysystem\Filesystem;
-use Symfony\Component\Config\Definition\Exception\Exception;
 use Webmozart\Console\Api\IO\IO;
 
 use Webmozart\Console\UI\Component\Table;
@@ -36,11 +35,11 @@ use Sabre\Xml\Service;
 use Alzander\BluetoothFCT\DUT\BTDevice;
 
 use Sabre\Xml;
-use Alzander\BluetoothFCT\MCPElements\Target;
 
 use Carbon\Carbon;
 use Alzander\BluetoothFCT\Adb;
 use Alzander\BluetoothFCT\MCPElements\Suite;
+use Alzander\BluetoothFCT\MCPElements\Scan;
 
 class Runner
 {
@@ -65,19 +64,22 @@ class Runner
         date_default_timezone_set('UTC');
         $this->adb = new Adb($io);
 
+        $this->adb->checkAdbVersion();
+        if (!$this->adb->devices()) {
+            $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
+            return 4;
+        }
     }
 
+    /**
+     * CLI option to create the XML files.
+     */
     public function generateXMLs()
     {
         $this->io->writeLine("Generating XML test scripts from " . $this->testFile);
 
         $this->flysystem->deleteDir('/xmls/' . $this->testFile);
 
-        $this->processTestFile();
-    }
-
-    private function processTestFile()
-    {
         $testData = $this->flysystem->read('suites/' . $this->testFile . '.json');
         try {
             $this->testObject = json_decode($testData);
@@ -85,27 +87,11 @@ class Runner
             $this->io->writeLine($this->testFile . " is not a properly formatted JSON file");
         }
 
-        $this->generateTests();
-    }
-
-    private function generateTests()
-    {
+        // Test file loaded, let's start creating the XMLs to run
         $xml = new Service();
 
-        $devices = array();
         // Setup the targets first
-
-        foreach ($this->testObject->targets as $target) {
-            if ($this->flysystem->has('/devices/' . $target->device . '.json'))
-                $descriptor = $this->flysystem->read('/devices/' . $target->device . '.json');
-            else
-                return false;
-
-            $descriptor = json_decode($descriptor);
-
-            $device = new BTDevice($descriptor, $target->address, $target->id);
-            $devices[$target->id] = $device;
-        }
+        $devices = $this->setupDevices();
 
         // Then, setup each test to be run
         $suiteId = 1;
@@ -118,6 +104,47 @@ class Runner
             $this->flysystem->write('/xmls/' . $this->testFile . '/suite_' . $suiteId . '.xml', $data);
             $suiteId++;
         }
+    }
+
+    /* Setup the devices specified in the test file.
+     * Could be set with a specific address or require a scan and some logic to find the best device.
+     */
+    private function setupDevices()
+    {
+        $devices = array();
+        foreach ($this->testObject->targets as $target) {
+            if ($this->flysystem->has('/devices/' . $target->device . '.json'))
+                $descriptor = $this->flysystem->read('/devices/' . $target->device . '.json');
+            else
+                return false;
+
+            // Check if we need to find a device to test instead of having a specific address
+            if (isset($target->scan))
+            {
+                $xml = new Service();
+                $scan = new Scan($target);
+                $data = $xml->write('test-suite', $scan);
+
+                $this->flysystem->write('/xmls/' . $this->testFile . '/suite_scanner.xml', $data);
+
+                $testSuite = $this->testFile;
+                $this->adb->setTestSuite($testSuite);
+
+                $this->io->writeLine(" Scanning for appropriate device to use as a target...");
+                $results = $this->runSuite('suite_scanner');
+
+                $target = $scan->findDevice($results);
+                if (empty($target)) {
+                    $this->io->writeLine("\nERROR: No suitable Bluetooth Devices found in range!\n\n\n");
+                    exit;
+                }
+            }
+            $descriptor = json_decode($descriptor);
+
+            $device = new BTDevice($descriptor, $target->address, $target->id);
+            $devices[$target->id] = $device;
+        }
+        return $devices;
     }
 
     /**
@@ -162,16 +189,10 @@ class Runner
     {
         $this->setupLogFile();
 
-        $this->io->writeLine("Running tests");
-        $this->adb->checkAdbVersion();
+        //$this->io->writeLine("Running tests");
 
         $testSuite = $this->testFile;
         $this->adb->setTestSuite($testSuite);
-
-        if (!$this->adb->devices()) {
-            $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
-            return 4;
-        }
 
         if (isset($this->testObject->loop)) {
             $loops = $this->testObject->loop->count;
@@ -198,20 +219,7 @@ class Runner
             foreach ($this->suites as $suiteId => $suite) {
                 $this->io->writeLine("<bu>Starting Test Suite " . $suiteId . ": " . $suite->getName() . "</bu>");
 
-                $this->adb->setTestName('suite_' . $suiteId);
-
-                $this->adb->removeOldResults();
-                $this->adb->uploadTestFile();
-                $this->adb->startTestService();
-                if (!$this->adb->fetchResultsFile()) {
-                    $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
-                    return 3;
-                }
-
-                $this->io->writeLine("");
-
-                // Fetch the results and have the test validate them.
-                $results = $this->flysystem->read("results/suite_" . $suiteId . "_result.txt");
+                $results = $this->runSuite('suite_' . $suiteId);
 
                 ob_start();
                 try {
@@ -239,7 +247,10 @@ class Runner
                 }
                 $output = ob_get_clean();
 
-                $this->io->write($output);
+                if (isset($this->testObject->verbose) && $this->testObject->verbose)
+                    $this->io->write($output);
+                else
+                    $this->io->writeLine("\n");
             }
 
             if (!$connectivityError) {
@@ -262,6 +273,26 @@ class Runner
         return 0;
     }
 
+    private function runSuite($suiteName)
+    {
+        $this->adb->setTestName($suiteName);
+
+        $this->adb->removeOldResults();
+        $this->adb->uploadTestFile();
+        $this->adb->startTestService();
+        if (!$this->adb->fetchResultsFile()) {
+            $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
+            return 3;
+        }
+
+        $this->io->writeLine("");
+
+        // Fetch the results and have the test validate them.
+        $results = $this->flysystem->read("results/" . $suiteName . "_result.txt");
+
+        return $results;
+    }
+
     protected function printTestSummary()
     {
         $table = new Table();
@@ -272,9 +303,8 @@ class Runner
 
         $suiteId = 1;
 
-
         $header = array('Date', "BT Address");
-        $values = array(new Carbon, $this->testObject->targets[0]->address);
+        $values = array(new Carbon, $this->suites[1]->target->address); //$this->testObject->targets[0]->address);
 
         foreach ($this->suites as $suite) {
             $elementId = 1;
@@ -334,7 +364,7 @@ class Runner
         $this->writeToLog($csv);
         // End log file creation
 
-        $this->io->writeLine("\n<b>Test Summary:</b>\n");
+        $this->io->writeLine("<b>Test Summary:</b>\n");
         $this->io->writeLine("Total Tests: " . $totalCnt);
         $this->io->writeLine("Tests Passed: " . $passCnt);
         $this->io->writeLine("Tests Failed: " . ($totalCnt - $passCnt));

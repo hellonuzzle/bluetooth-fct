@@ -33,7 +33,7 @@ abstract class MCPElement implements XmlSerializable
     public $subElements = array();
 
     protected $params;
-    protected $target;
+    public $target;
     protected $io;
     protected $result;
 
