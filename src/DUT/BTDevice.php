@@ -33,16 +33,18 @@ class BTDevice {
     public $name;
     public $services;
     public $address;
+    public $rssi;
 
     public $connected = false;
 
     public $timeouts;
 
-    public function __construct($descriptor, $address, $id)
+    public function __construct($descriptor, $address, $id, $rssi)
     {
         $this->services = array();
         $this->address = $address;
         $this->id = $id;
+        $this->rssi = $rssi;
 
         $this->parse($descriptor);
     }

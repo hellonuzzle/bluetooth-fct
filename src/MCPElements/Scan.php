@@ -52,7 +52,7 @@ class Scan extends MCPElement
                         'attributes' => [
                             'description' => 'BT Scanner START',
                             'rssi' => -100,
-                            'timeout' => 5000
+                            'timeout' => 20000
                         ]
                     ]
                 ],
@@ -106,7 +106,7 @@ class Scan extends MCPElement
 
         // Filter devices to find best match
         $foundDevice = null;
-        $io->writeLine("<b>Devices found:</b>");
+        $io->writeLine("<b>Bluetooth devices found:</b>");
         foreach ($devices as $device)
         {
             $devName = "";
@@ -122,6 +122,7 @@ class Scan extends MCPElement
                         $foundDevice = $device;
                         $foundDevice->id = $this->params->id;
                         $foundDevice->name = $devName;
+                        $foundDevice->rssi = $device->rssi;
                     }
                 }
             }
@@ -129,8 +130,8 @@ class Scan extends MCPElement
 
         $io->writeLine("\n");
         if ($foundDevice) {
-            $io->writeLine("<b>Device selected as target:</b>");
-            $io->writeLine($foundDevice->address . " " . $foundDevice->name . " " . $device->rssi . "dBm");
+            $io->writeLine("<b>DUT selected:</b>");
+            $io->writeLine($foundDevice->address . " " . $foundDevice->name . " " . $foundDevice->rssi . "dBm");
         }
         $io->writeLine("\n");
 

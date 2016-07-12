@@ -55,6 +55,17 @@ class Validator {
             $val = implode($pieces);
             echo $val;
         }
+
+        if (isset($this->params->grep))
+        {
+            if (!preg_match($this->params->grep, $val))
+            {
+                $this->pass = false;
+                $this->value = $val;
+                $this->output = $val . " :: not proper format : " . $this->params->grep;
+                return;
+            }
+        }
         $this->runValidationFor($val);
     }
 

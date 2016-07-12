@@ -66,8 +66,8 @@ class Runner
 
         $this->adb->checkAdbVersion();
         if (!$this->adb->devices()) {
-            $this->io->writeLine("\nERROR: Android devices not attached!\n\n\n");
-            return 4;
+            $this->io->writeLine("\nERROR: No Android phone connected!\n\n\n");
+            exit;
         }
     }
 
@@ -130,18 +130,19 @@ class Runner
                 $testSuite = $this->testFile;
                 $this->adb->setTestSuite($testSuite);
 
-                $this->io->writeLine(" Scanning for appropriate device to use as a target...");
+                $this->io->writeLine(" Scanning for DUT...");
                 $results = $this->runSuite('suite_scanner');
 
                 $target = $scan->findDevice($results);
                 if (empty($target)) {
-                    $this->io->writeLine("\nERROR: No suitable Bluetooth Devices found in range!\n\n\n");
+                    $this->io->writeLine("\nERROR: No DUTs found in range!\n\n\n");
                     exit;
                 }
             }
             $descriptor = json_decode($descriptor);
 
-            $device = new BTDevice($descriptor, $target->address, $target->id);
+            $rssi = isset($target->rssi) ? $target->rssi : "Unknown";
+            $device = new BTDevice($descriptor, $target->address, $target->id, $target->rssi);
             $devices[$target->id] = $device;
         }
         return $devices;
@@ -303,8 +304,8 @@ class Runner
 
         $suiteId = 1;
 
-        $header = array('Date', "BT Address");
-        $values = array(new Carbon, $this->suites[1]->target->address); //$this->testObject->targets[0]->address);
+        $header = array('Date', "BT Address", "BT RSSI");
+        $values = array(new Carbon, $this->suites[1]->target->address, $this->suites[1]->target->rssi); //$this->testObject->targets[0]->address);
 
         foreach ($this->suites as $suite) {
             $elementId = 1;
