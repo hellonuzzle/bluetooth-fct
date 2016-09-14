@@ -73,18 +73,27 @@ class Adb
         $output = shell_exec('adb shell rm "/sdcard/AlzanderBT/Test/' . $this->testName . '_result.txt" > nul 2>&1');
     }
 
+    public function uploadFirmware($fileName)
+    {
+        $uploadFile = './firmware/' . $fileName;
+        $uploadLocation = '/sdcard/AlzanderBT/Firmware/' . $fileName;
+        $this->io->writeLine("\nUploading firmware file...");
+        $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
+        $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
+    }
+
     public function uploadTestFile()
     {
         $uploadFile = './fct/xmls/' . $this->testSuite . '/' . $this->testName . '.xml';
         $uploadLocation = '/sdcard/AlzanderBT/Test/' . $this->testName . '.xml';
-//        $this->io->writeLine("Uploading new test file...");
+//        $this->io->writeLine("\nUploading new test file...");
 //        $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
         $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
     }
 
     public function startTestService()
     {
-//        $this->io->writeLine("Starting test service...");
+        $this->io->writeLine("Starting test service...");
         $output = shell_exec('adb shell am startservice --user 0 -a no.nordicsemi.android.action.START_TEST ' .
             '-e no.nordicsemi.android.test.extra.EXTRA_FILE_PATH "/sdcard/AlzanderBT/Test/' . $this->testName . '.xml" > nul 2>&1');
     }
@@ -99,7 +108,7 @@ class Adb
             if ($returnVal == 1) {
                 sleep(1);
                 $i++;
-                if ($i > 30) // We've waited too long, something is wrong
+                if ($i > 120) // We've waited too long, something is wrong
                 {
                     return false;
                 }

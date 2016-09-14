@@ -48,7 +48,7 @@ class Suite extends MCPElement
                         foreach ($this->subElements as $element)
                             $element->xmlSerialize($writer);
                     },
-                    //new Disconnect($this->target->id),
+                    new Disconnect($this->target->id),
                 ],
             ],
             new RunTest(['test' => "auto_test"])
@@ -61,13 +61,23 @@ class Suite extends MCPElement
         $connect = new Connect(['shouldDiscover' => true], $this->target);
         array_push($this->subElements, $connect);
 
-        foreach ($this->params->tests as $test)
-        {
-            $testParts = explode(".", $test->command);
-            $testName = "Alzander\\BluetoothFCT\\MCPElements\\" . implode("\\", $testParts);
-            $test = new $testName($test, $this->target);
-//            array_push($this->suites[$suiteId]->tests, $test);
-            array_push($this->subElements, $test);
+        if (isset($this->params->loop)) {
+            $loops = $this->params->loop->count;
+            $sleep = isset($this->params->loop->sleep) ? $this->params->loop->sleep : 0;
+        } else {
+            $loops = 1;
+            $sleep = 0;
+        }
+
+        for ($i = 0; $i < $loops; $i++) {
+            foreach ($this->params->tests as $test) {
+                $testParts = explode(".", $test->command);
+                $testName = "Alzander\\BluetoothFCT\\MCPElements\\" . implode("\\", $testParts);
+                $test = new $testName($test, $this->target);
+                array_push($this->subElements, $test);
+            }
+            if ($sleep > 0 && $i !== ($loops - 1) )
+                array_push($this->subElements, new Sleep(['timeout'=> $sleep * 1000]));
         }
     }
 

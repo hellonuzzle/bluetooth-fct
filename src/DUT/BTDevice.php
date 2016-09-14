@@ -52,7 +52,7 @@ class BTDevice {
     private function parse($descriptor)
     {
         $this->name = $descriptor->name;
-        $this->CCID = $descriptor->CCCD_UUID;
+        //$this->CCID = $descriptor->CCCD_UUID;
 
         if (isset($descriptor->timeouts))
         {

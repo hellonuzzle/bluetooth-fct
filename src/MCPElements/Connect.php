@@ -40,7 +40,7 @@ class Connect extends MCPElement
                     'attributes' => ['timeout' => $this->target->timeouts['connect']]
                 ],
                 new Refresh(null),
-                new Sleep(['timeout' => 5000]),
+                new Sleep(['timeout' => 2000]),
             ]);
             //$this->device->connected = true;
         }

@@ -39,7 +39,9 @@ use Sabre\Xml;
 use Carbon\Carbon;
 use Alzander\BluetoothFCT\Adb;
 use Alzander\BluetoothFCT\MCPElements\Suite;
+use Alzander\BluetoothFCT\MCPElements\Dfu;
 use Alzander\BluetoothFCT\MCPElements\Scan;
+use Alzander\BluetoothFCT\MCPElements\Target;
 
 class Runner
 {
@@ -106,6 +108,50 @@ class Runner
         }
     }
 
+    /**
+     * CLI option to create the XML files.
+     */
+    public function generateDfuXML($btAddress, $file)
+    {
+        $this->io->writeLine("Generating DFU XML test scripts for device at " . $btAddress . " to update to " . $file);
+
+        $this->flysystem->deleteDir('/xmls/dfu');
+
+/*        $testData = $this->flysystem->read('suites/' . $this->testFile . '.json');
+        try {
+            $this->testObject = json_decode($testData);
+        } catch (\Exception $e) {
+            $this->io->writeLine($this->testFile . " is not a properly formatted JSON file");
+        }
+*/
+        // Test file loaded, let's start creating the XMLs to run
+        $xml = new Service();
+
+        // Setup the targets first
+//        $devices = $this->setupDevices();
+        $descriptor = new \stdClass();
+        $descriptor->name = "OTA DUT";
+        $device = new BTDevice($descriptor, $btAddress, "DFU", null);
+        $params = new \stdClass();
+        $params->package = $file;
+
+        $data = $xml->write('test-suite',
+            [
+                new Target(null, $device),
+                'test' => [
+                    'attributes' => [
+                        'id' => "dfu"
+                    ],
+                    'value' => [
+                        new Dfu($params, $device),
+                    ],
+                ],
+                new RunTest(['test' => "dfu"])
+            ]
+        );
+        $this->flysystem->write('/xmls/dfu/dfu.xml', $data);
+    }
+
     /* Setup the devices specified in the test file.
      * Could be set with a specific address or require a scan and some logic to find the best device.
      */
@@ -119,8 +165,7 @@ class Runner
                 return false;
 
             // Check if we need to find a device to test instead of having a specific address
-            if (isset($target->scan))
-            {
+            if (isset($target->scan) && !isset($target->address)) {
                 $xml = new Service();
                 $scan = new Scan($target);
                 $data = $xml->write('test-suite', $scan);
@@ -142,7 +187,7 @@ class Runner
             $descriptor = json_decode($descriptor);
 
             $rssi = isset($target->rssi) ? $target->rssi : "Unknown";
-            $device = new BTDevice($descriptor, $target->address, $target->id, $target->rssi);
+            $device = new BTDevice($descriptor, $target->address, $target->id, $rssi);
             $devices[$target->id] = $device;
         }
         return $devices;
@@ -199,12 +244,12 @@ class Runner
             $loops = $this->testObject->loop->count;
             $exitOnFail = isset($this->testObject->loop->stopOnFail) ? $this->testObject->loop->stopOnFail : false;
             $looping = true;
-            $interval = isset($this->testObject->loop->interval) ? $this->testObject->loop->interval : 0;
+            $sleep = isset($this->testObject->loop->sleep) ? $this->testObject->loop->sleep : 0;
         } else {
             $loops = 1;
             $exitOnFail = false;
             $looping = false;
-            $interval = 0;
+            $sleep = 0;
         }
 
         $failCnt = 0;
@@ -232,7 +277,7 @@ class Runner
                     $this->io->write($output);
                     $this->io->write("<fail>CONNECTIVITY FAILURE: </fail>" . $e->getMessage() . "\n");
 
-                    $values = array(new Carbon, $this->testObject->targets[0]->address, $e->getMessage());
+                    $values = array(new Carbon, $this->suites[1]->target->address, $e->getMessage());
 
                     $data = implode('","', $values);
                     $csv = '"' . $data . '"' . "\n";
@@ -265,13 +310,39 @@ class Runner
             }
             $this->io->writeLine("  Total Test Time: " . $startTime->diff(new Carbon)->format("%Hh%im:%ss"));
 
-            if (!$connectivityError && $interval > 0) { // Connectivity problems should just be immediately retried
-                $this->io->writeLine("  ... Sleeping for " . $interval . " seconds ...");
-                sleep($interval);
+            if (!$connectivityError && $sleep > 0) { // Connectivity problems should just be immediately retried
+                $this->io->writeLine("  ... Sleeping for " . $sleep . " seconds ...");
+                sleep($sleep);
             }
 
         }
         return 0;
+    }
+
+
+    public function runDfuSuite($dfuFile)
+    {
+        $this->adb->setTestSuite('dfu');
+
+        $this->adb->setTestName('dfu');
+
+        $this->adb->removeOldResults();
+        $this->adb->uploadTestFile();
+
+        $this->adb->uploadFirmware($dfuFile);
+
+        $this->adb->startTestService();
+        if (!$this->adb->fetchResultsFile()) {
+            $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");
+            return 3;
+        }
+
+        $this->io->writeLine("");
+
+        // Fetch the results and have the test validate them.
+        $results = $this->flysystem->read("results/dfu_result.txt");
+
+        return $results;
     }
 
     private function runSuite($suiteName)
@@ -280,6 +351,7 @@ class Runner
 
         $this->adb->removeOldResults();
         $this->adb->uploadTestFile();
+
         $this->adb->startTestService();
         if (!$this->adb->fetchResultsFile()) {
             $this->io->writeLine("\n<fail>CRITICAL ERROR: </fail>Results not returned. Something went wrong...\n\n");

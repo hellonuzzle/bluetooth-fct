@@ -26,6 +26,7 @@ namespace Alzander\BluetoothFCT;
 
 use Webmozart\Console\Config\DefaultApplicationConfig;
 use Alzander\BluetoothFCT\Commands\RunCommandHandler;
+use Alzander\BluetoothFCT\Commands\DfuCommandHandler;
 use Alzander\BluetoothFCT\Commands\GenerateXMLCommandHandler;
 use Webmozart\Console\Api\Args\Format\Argument;
 use Webmozart\Console\Api\Args\Format\Option;
@@ -66,5 +67,12 @@ class BluetoothFCTApplicationConfig extends DefaultApplicationConfig
             ->setHandler(new GenerateXMLCommandHandler($this->filesystem) )
             ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json')
         ->end();
+
+        $this->beginCommand("dfu")
+            ->setDescription("Run the specified test file to do an over-the-air update of a board.")
+            ->setHandler(new DfuCommandHandler($this->filesystem) )
+            ->addArgument('address', Argument::REQUIRED, 'The BT address of the device to program.')
+            ->addArgument('file', Argument::REQUIRED, 'The zip file from the firmware directory to program. Ex. test-dfu.zip')
+            ->end();
     }
 }

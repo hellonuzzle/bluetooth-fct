@@ -132,6 +132,16 @@ abstract class MCPElement implements XmlSerializable
             }
         }
 
+        if (isset($this->params->logRawOutput)) {
+            $logFile = './fct/results/logs/' . $this->params->logRawOutput . '.csv';
+            $fh = fopen($logFile, 'a');
+
+            $data = '"' . $value . '"' . "\n";
+
+            fwrite($fh, $data);
+            fclose($fh);
+        }
+
         if (count($this->validators) > 0)
             echo "Running validation for : " . $this->getName() . "\n";
 

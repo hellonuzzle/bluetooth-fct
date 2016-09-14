@@ -111,7 +111,8 @@ class Scan extends MCPElement
         {
             $devName = "";
             for ($i = 18; $i < 18+12; $i += 2) {
-                $devName .= chr(hexdec($device->advertising[$i] . $device->advertising[$i + 1]));
+                if (strlen($device->advertising) > $i)
+                    $devName .= chr(hexdec($device->advertising[$i] . $device->advertising[$i + 1]));
             }
             $io->writeLine($device->address . " " . $devName . " " . $device->rssi . "dBm");
 
