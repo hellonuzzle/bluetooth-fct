@@ -49,6 +49,7 @@ class Suite extends MCPElement
                             $element->xmlSerialize($writer);
                     },
                     new Disconnect($this->target->id),
+                    new Sleep(array('timeout' => 4000))
                 ],
             ],
             new RunTest(['test' => "auto_test"])
@@ -70,11 +71,13 @@ class Suite extends MCPElement
         }
 
         for ($i = 0; $i < $loops; $i++) {
-            foreach ($this->params->tests as $test) {
-                $testParts = explode(".", $test->command);
-                $testName = "Alzander\\BluetoothFCT\\MCPElements\\" . implode("\\", $testParts);
-                $test = new $testName($test, $this->target);
-                array_push($this->subElements, $test);
+            if (isset($this->params->tests)) {
+                foreach ($this->params->tests as $test) {
+                    $testParts = explode(".", $test->command);
+                    $testName = "Alzander\\BluetoothFCT\\MCPElements\\" . implode("\\", $testParts);
+                    $test = new $testName($test, $this->target);
+                    array_push($this->subElements, $test);
+                }
             }
             if ($sleep > 0 && $i !== ($loops - 1) )
                 array_push($this->subElements, new Sleep(['timeout'=> $sleep * 1000]));

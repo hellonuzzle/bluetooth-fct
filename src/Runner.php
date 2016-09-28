@@ -98,11 +98,43 @@ class Runner
         // Then, setup each test to be run
         $suiteId = 1;
         foreach ($this->testObject->suites as $suite) {
-            $testSuite = new Suite($suite, $devices[$suite->target]);
-            $this->suites[$suiteId] = $testSuite;
+            if (isset($suite->type) && $suite->type == "dfu")
+            {
+                $testSuite = new Suite($suite, $devices[$suite->target]);
+                $this->suites[$suiteId] = $testSuite;
 
-            $data = $xml->write('test-suite', $testSuite);
+                $descriptor = new \stdClass();
+                $descriptor->name = "OTA DUT";
+//                $device = new BTDevice($descriptor, $btAddress, "DFU", null);
 
+                $device = new BTDevice($descriptor, $devices[$suite->target]->address, "DFU", null);
+                $params = new \stdClass();
+                $params->package = $suite->package;
+
+                $data = $xml->write('test-suite',
+                    [
+                        new Target(null, $device),
+                        'test' => [
+                            'attributes' => [
+                                'id' => "dfu"
+                            ],
+                            'value' => [
+                                new Dfu($params, $device),
+                            ],
+                        ],
+                        new RunTest(['test' => "dfu"])
+                    ]
+                );
+
+                $this->adb->uploadFirmware($params->package);
+            }
+            else {
+                $testSuite = new Suite($suite, $devices[$suite->target]);
+                $this->suites[$suiteId] = $testSuite;
+
+                $data = $xml->write('test-suite', $testSuite);
+
+            }
             $this->flysystem->write('/xmls/' . $this->testFile . '/suite_' . $suiteId . '.xml', $data);
             $suiteId++;
         }
@@ -140,13 +172,13 @@ class Runner
                 new Target(null, $device),
                 'test' => [
                     'attributes' => [
-                        'id' => "dfu"
+                        'id' => "dfutest"
                     ],
                     'value' => [
                         new Dfu($params, $device),
                     ],
                 ],
-                new RunTest(['test' => "dfu"])
+                new RunTest(['test' => "dfutest"])
             ]
         );
         $this->flysystem->write('/xmls/dfu/dfu.xml', $data);
