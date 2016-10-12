@@ -110,7 +110,7 @@ class Scan extends MCPElement
         foreach ($devices as $device)
         {
             $devName = "";
-            for ($i = 18; $i < 18+12; $i += 2) {
+            for ($i = 30; $i < 30+20; $i += 2) {
                 if (strlen($device->advertising) > $i)
                     $devName .= chr(hexdec($device->advertising[$i] . $device->advertising[$i + 1]));
             }
