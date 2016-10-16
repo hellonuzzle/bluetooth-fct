@@ -33,6 +33,8 @@ class Validator {
     protected $pass;
     protected $output;
 
+    protected $userInput = false;
+
     public function __construct($params)
     {
         $this->params = $params;
@@ -56,7 +58,7 @@ class Validator {
             echo $val;
         }
 
-        if (isset($this->params->grep))
+        if (isset($this->params->grep) && !$this->userInput)
         {
             if (!preg_match($this->params->grep, $val))
             {

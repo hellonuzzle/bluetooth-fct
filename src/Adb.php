@@ -93,7 +93,7 @@ class Adb
 
     public function startTestService()
     {
-        $this->io->writeLine("Starting test service...");
+        //$this->io->writeLine("Starting test service...");
         $output = shell_exec('adb shell am startservice --user 0 -a no.nordicsemi.android.action.START_TEST ' .
             '-e no.nordicsemi.android.test.extra.EXTRA_FILE_PATH "/sdcard/AlzanderBT/Test/' . $this->testName . '.xml" > nul 2>&1');
     }
