@@ -88,8 +88,7 @@ class Scan extends MCPElement
                 $device = $devices[$parts[1]];
                 $device->rssi = max($parts[2], $device->rssi);
 
-            }
-            else {
+            } else {
                 $device = new \stdClass();
                 $device->address = $parts[1];
                 $device->rssi = $parts[2];
@@ -103,28 +102,54 @@ class Scan extends MCPElement
         }
 
 
-
         // Filter devices to find best match
         $foundDevice = null;
         $io->writeLine("<b>Bluetooth devices found:</b>");
+        $fullNameFound = false;
         foreach ($devices as $device)
         {
-            $devName = "";
-            for ($i = 30; $i < 30+20; $i += 2) {
-                if (strlen($device->advertising) > $i)
-                    $devName .= chr(hexdec($device->advertising[$i] . $device->advertising[$i + 1]));
-            }
-            $io->writeLine($device->address . " " . $devName . " " . $device->rssi . "dBm");
+            $advNameFound = false;
+            $index = 0;
 
-            if (isset($this->params->scan->device_name)) {
-                if ($devName == $this->params->scan->device_name) {
-                    // Found a possible device. Is this the best match?
-                    if (empty($foundDevice) || $device->rssi > $foundDevice->rssi) {
-                        $foundDevice = $device;
-                        $foundDevice->id = $this->params->id;
-                        $foundDevice->name = $devName;
-                        $foundDevice->rssi = $device->rssi;
+            while (!$advNameFound && (strlen($device->advertising) > $index)) {
+                $length = hexdec($device->advertising[$index] . $device->advertising[$index + 1]);
+                $type = hexdec($device->advertising[$index + 2] . $device->advertising[$index + 3]);
+                if ($type == 8 || $type == 9) {
+                    $advNameFound = true;
+
+                    $addressStart = $index + 4;
+                    $devName = hex2bin(substr($device->advertising, $addressStart, ($length - 1) * 2));
+                    if (strlen($devName) != (($length - 1)) ) // Name was truncated..?
+                    {
+                        $devLength = strlen($devName);
+                        $truncated = true;
                     }
+                    else
+                    {
+                        $devLength = ($length - 1);
+                        $truncated = false;
+                    }
+
+                    $io->writeLine($device->address . " " . $devName . " " . $device->rssi . "dBm");
+
+                    if (isset($this->params->scan->device_name)) {
+                        if ($devName == substr($this->params->scan->device_name, 0, $devLength)) {
+                            // Found a possible device. Is this the best match?
+                            if (!$truncated) // Only use truncated names if necessary
+                                $fullNameFound = true;
+                            if ($truncated && $fullNameFound)
+                                break; // Stop this search and move to the next device
+
+                            if (empty($foundDevice) || $device->rssi > $foundDevice->rssi) {
+                                $foundDevice = $device;
+                                $foundDevice->id = $this->params->id;
+                                $foundDevice->name = $devName;
+                                $foundDevice->rssi = $device->rssi;
+                            }
+                        }
+                    }
+                } else {
+                    $index += ($length * 2) + 2;
                 }
             }
         }
