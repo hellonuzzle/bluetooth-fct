@@ -39,6 +39,7 @@ class Scan extends MCPElement
         $target->name = "blah";
         $target->address = "AA:BB:CC:DD:EE:FF";
 
+        $timeout = isset ($this->params->scan->timeout) ? $this->params->scan->timeout : 20000;
         //        <scan description="List nearby devices" rssi="-60" timeout="10000"/>
         $writer->write([
             new Target(null, $target),
@@ -52,7 +53,7 @@ class Scan extends MCPElement
                         'attributes' => [
                             'description' => 'BT Scanner START',
                             'rssi' => -100,
-                            'timeout' => 20000
+                            'timeout' => $timeout,
                         ]
                     ]
                 ],
@@ -106,8 +107,7 @@ class Scan extends MCPElement
         $foundDevice = null;
         $io->writeLine("<b>Bluetooth devices found:</b>");
         $fullNameFound = false;
-        foreach ($devices as $device)
-        {
+        foreach ($devices as $device) {
             $advNameFound = false;
             $index = 0;
 
@@ -119,13 +119,11 @@ class Scan extends MCPElement
 
                     $addressStart = $index + 4;
                     $devName = hex2bin(substr($device->advertising, $addressStart, ($length - 1) * 2));
-                    if (strlen($devName) != (($length - 1)) ) // Name was truncated..?
+                    if (strlen($devName) != (($length - 1))) // Name was truncated..?
                     {
                         $devLength = strlen($devName);
                         $truncated = true;
-                    }
-                    else
-                    {
+                    } else {
                         $devLength = ($length - 1);
                         $truncated = false;
                     }
@@ -134,17 +132,21 @@ class Scan extends MCPElement
 
                     if (isset($this->params->scan->device_name)) {
                         if ($devName == substr($this->params->scan->device_name, 0, $devLength)) {
+                            if ($truncated && $fullNameFound)
+                                break; // Don't replace a full name with a truncated name
+
                             // Found a possible device. Is this the best match?
                             if (!$truncated) // Only use truncated names if necessary
                                 $fullNameFound = true;
-                            if ($truncated && $fullNameFound)
-                                break; // Stop this search and move to the next device
 
-                            if (empty($foundDevice) || $device->rssi > $foundDevice->rssi) {
+                            if (empty($foundDevice) || // No device found, set this one
+                                (!$truncated && $foundDevice->truncatedName) || // Used to be truncated, but a non-truncated found
+                                $device->rssi > $foundDevice->rssi) { // This device has a better strength
                                 $foundDevice = $device;
                                 $foundDevice->id = $this->params->id;
                                 $foundDevice->name = $devName;
                                 $foundDevice->rssi = $device->rssi;
+                                $foundDevice->truncatedName = $truncated;
                             }
                         }
                     }

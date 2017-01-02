@@ -36,6 +36,9 @@ class Suite extends MCPElement
 
     public function xmlSerialize(Writer $writer)
     {
+        if ($this->target == null)
+            return;
+
         $writer->write([
             new Target(null, $this->target),
             'test' => [

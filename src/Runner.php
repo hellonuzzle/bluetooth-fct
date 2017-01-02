@@ -129,7 +129,8 @@ class Runner
                 $this->adb->uploadFirmware($params->package);
             }
             else {
-                $testSuite = new Suite($suite, $devices[$suite->target]);
+                $device = isset($suite->target) ? $devices[$suite->target] : null;
+                $testSuite = new Suite($suite, $device);
                 $this->suites[$suiteId] = $testSuite;
 
                 $data = $xml->write('test-suite', $testSuite);
@@ -296,7 +297,6 @@ class Runner
 
             foreach ($this->suites as $suiteId => $suite) {
                 $this->io->writeLine("<bu>Starting Test Suite " . $suiteId . ": " . $suite->getName() . "</bu>");
-
                 $results = $this->runSuite('suite_' . $suiteId);
 
                 ob_start();
