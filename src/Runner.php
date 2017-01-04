@@ -111,6 +111,9 @@ class Runner
                 $params = new \stdClass();
                 $params->package = $suite->package;
 
+                $dfu = new Dfu($params, $device);
+                array_push($testSuite->subElements, $dfu);
+
                 $data = $xml->write('test-suite',
                     [
                         new Target(null, $device),
@@ -119,7 +122,7 @@ class Runner
                                 'id' => "dfu"
                             ],
                             'value' => [
-                                new Dfu($params, $device),
+                                $dfu
                             ],
                         ],
                         new RunTest(['test' => "dfu"])
