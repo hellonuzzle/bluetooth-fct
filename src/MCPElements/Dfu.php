@@ -49,15 +49,4 @@ class Dfu extends MCPElement
         );
     }
 
-    protected function checkCriticalFailures($responseData)
-    {
-        $pattern = " DFU Download...FAIL";
-        $pattern = "/^.*" . $pattern . ".*\$/m";
-
-        if (preg_match_all($pattern, $responseData, $matches)) {
-            throw new \Exception("DFU Download Failed", 3);
-        }
-    }
-
-
 }
