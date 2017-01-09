@@ -27,7 +27,7 @@ namespace Alzander\BluetoothFCT\Validator;
 
 use Webmozart\Console\IO\ConsoleIO;
 
-class InputString extends Validator {
+class Compare extends Validator {
 
     protected $userInput = true;
 
@@ -36,6 +36,8 @@ class InputString extends Validator {
         $this->io = new ConsoleIO();
         $this->io->writeLine($this->params->question);
         $this->io->setInteractive(true);
+        $min = $this->params->min;
+        $max = $this->params->max;        
 
         $validResponse = false;
         while (!$validResponse)
@@ -56,6 +58,24 @@ class InputString extends Validator {
                 }
             }
         }
+
+        
+        if (isset($this->params->min))
+        {          
+            $this->value = $readValue;
+            if ($readValue >= $min && $readValue <= $max) {
+                $this->output = $readValue . " is within " . $min . " to " . $max;
+                $this->pass = true;
+                $this->io->writeLine("Pass");
+            }
+            else 
+            {
+                $this->output = $readValue . " is not within " . $min . " to " . $max;
+                $this->io->writeLine("Fail");
+                $this->pass = false;
+            }
+        }
+       
         $this->io->setInteractive(false);
     }
 
