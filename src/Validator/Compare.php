@@ -75,6 +75,7 @@ class Compare extends Validator {
                 $this->pass = false;
             }
         }
+        
        
         $this->io->setInteractive(false);
     }
