@@ -31,7 +31,6 @@ class Characters extends Validator
 
     protected function runValidationFor($val)
     {
-
         $string = '';
         for ($i = 0; $i < strlen($val) - 1; $i += 2) {
             $string .= chr(hexdec($val[$i] . $val[$i + 1]));
@@ -40,9 +39,9 @@ class Characters extends Validator
 
         $this->value = $string;
 
-        if (isset($this->params->expected) && $this->params->expected != $string) {
+        if (isset($this->params->expected) && $this->params->expected != trim($string)) {
             $this->pass = false;
-            $this->output = $string . " :: not equal to : " . $this->params->expected;
+            $this->output = '|' . $string . "| :: not equal to : |" . $this->params->expected . '|';
         } else {
             $this->pass = true;
             $this->output = $string;
