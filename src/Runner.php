@@ -54,17 +54,20 @@ class Runner
     protected $suites = array();
     protected $logFile;
     protected $logParameter;
+    protected $androidSN;
+
     private $logHeaderWritten = false;
 
-    public function __construct($testFile, IO $io, Filesystem $flysystem, $logFile = null)
+    public function __construct($testFile, IO $io, Filesystem $flysystem, $logFile = null, $androidSN = null)
     {
         $this->testFile = $testFile;
         $this->flysystem = $flysystem;
         $this->logParameter = $logFile;
+        $this->androidSN = $androidSN;
         $this->io = $io;
 
         date_default_timezone_set('UTC');
-        $this->adb = new Adb($io);
+        $this->adb = new Adb($io, $this->androidSN);
 
         $this->adb->checkAdbVersion();
         if (!$this->adb->devices()) {

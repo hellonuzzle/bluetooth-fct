@@ -32,9 +32,14 @@ class Adb
     private $testSuite;
     private $testName;
 
-    public function __construct(IO $io)
+    private $androidSN;
+
+    public function __construct(IO $io, $androidSN = null)
     {
         $this->io = $io;
+        if (!empty($androidSN))
+         $this->androidSN = "-s " . $androidSN;
+
     }
 
     public function checkAdbVersion()
@@ -63,6 +68,14 @@ class Adb
         $this->io->writeLine("");
         if ($deviceCnt == 1)
             return true;
+        else if ($deviceCnt > 1)
+        {
+            if (empty($this->androidSN)) {
+                $this->io->writeLine("Use '-android xxxxx' in command after to target the right Android device.");
+                return false;
+            }
+            return true;
+        }
         else
             return false;
     }
@@ -70,7 +83,7 @@ class Adb
     public function removeOldResults()
     {
 //        $this->io->writeLine("Removing old results file...");
-        $output = shell_exec('adb shell rm "/sdcard/AlzanderBT/Test/' . $this->testName . '_result.txt" > nul 2>&1');
+        $output = shell_exec('adb ' . $this->androidSN . ' shell rm "/sdcard/AlzanderBT/Test/' . $this->testName . '_result.txt" > nul 2>&1');
     }
 
     public function uploadFirmware($fileName)
@@ -79,7 +92,7 @@ class Adb
         $uploadLocation = '/sdcard/AlzanderBT/Firmware/' . $fileName;
         $this->io->writeLine("\nUploading firmware file...");
         $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
-        $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
+        $output = shell_exec('adb ' . $this->androidSN . ' push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
     }
 
     public function uploadTestFile()
@@ -88,13 +101,13 @@ class Adb
         $uploadLocation = '/sdcard/AlzanderBT/Test/' . $this->testName . '.xml';
 //        $this->io->writeLine("\nUploading new test file...");
 //        $this->io->writeLine($uploadFile . ' to ' . $uploadLocation);
-        $output = shell_exec('adb push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
+        $output = shell_exec('adb ' . $this->androidSN . ' push ' . $uploadFile . ' "' . $uploadLocation . '" > nul 2>&1');
     }
 
     public function startTestService()
     {
         //$this->io->writeLine("Starting test service...");
-        $output = shell_exec('adb shell am startservice --user 0 -a no.nordicsemi.android.action.START_TEST ' .
+        $output = shell_exec('adb ' . $this->androidSN . ' shell am startservice --user 0 -a no.nordicsemi.android.action.START_TEST ' .
             '-e no.nordicsemi.android.test.extra.EXTRA_FILE_PATH "/sdcard/AlzanderBT/Test/' . $this->testName . '.xml" > nul 2>&1');
     }
 
@@ -104,7 +117,7 @@ class Adb
         $i = 0;
         while ($keepGoing) {
             $resultFile = $this->testName . '_result.txt';
-            exec('adb pull "/sdcard/AlzanderBT/Test/' . $resultFile . '" "fct/results/' . $resultFile . '" > nul 2>&1', $output, $returnVal);
+            exec('adb ' . $this->androidSN . ' pull "/sdcard/AlzanderBT/Test/' . $resultFile . '" "fct/results/' . $resultFile . '" > nul 2>&1', $output, $returnVal);
             if ($returnVal == 1) {
                 sleep(1);
                 $i++;

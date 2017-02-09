@@ -47,8 +47,9 @@ class RunCommandHandler
         $testFile = $args->getArgument('test');
 
         $logFile = $args->getOption('log');
+        $androidSN = $args->getOption('android');
 
-        $runner = new Runner($testFile, $io, $this->flysystem, $logFile);
+        $runner = new Runner($testFile, $io, $this->flysystem, $logFile, $androidSN);
         $runner->generateXMLs();
 
         return $runner->runTests();

@@ -60,6 +60,7 @@ class BluetoothFCTApplicationConfig extends DefaultApplicationConfig
             ->setHandler(new RunCommandHandler($this->filesystem) )
             ->addArgument('test', Argument::REQUIRED, 'The test file to load from the fct/suites directory. Omit .json')
             ->addOption('log', null, Option::OPTIONAL_VALUE, 'Filename to log data to. ', null, 'log')
+            ->addOption('android', null, Option::OPTIONAL_VALUE, 'Android serial number to target. ', null, 'android')
         ->end();
 
         $this->beginCommand("generateXML")
