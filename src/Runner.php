@@ -101,8 +101,7 @@ class Runner
         // Then, setup each test to be run
         $suiteId = 1;
         foreach ($this->testObject->suites as $suite) {
-            if (isset($suite->type) && $suite->type == "dfu")
-            {
+            if (isset($suite->type) && $suite->type == "dfu") {
                 $testSuite = new Suite($suite, $devices[$suite->target]);
                 $this->suites[$suiteId] = $testSuite;
 
@@ -130,8 +129,7 @@ class Runner
                 );
 
                 $this->adb->uploadFirmware($params->package);
-            }
-            else {
+            } else {
                 $device = isset($suite->target) ? $devices[$suite->target] : null;
                 $testSuite = new Suite($suite, $device);
                 $this->suites[$suiteId] = $testSuite;
@@ -153,13 +151,13 @@ class Runner
 
         $this->flysystem->deleteDir('/xmls/dfu');
 
-/*        $testData = $this->flysystem->read('suites/' . $this->testFile . '.json');
-        try {
-            $this->testObject = json_decode($testData);
-        } catch (\Exception $e) {
-            $this->io->writeLine($this->testFile . " is not a properly formatted JSON file");
-        }
-*/
+        /*        $testData = $this->flysystem->read('suites/' . $this->testFile . '.json');
+                try {
+                    $this->testObject = json_decode($testData);
+                } catch (\Exception $e) {
+                    $this->io->writeLine($this->testFile . " is not a properly formatted JSON file");
+                }
+        */
         // Test file loaded, let's start creating the XMLs to run
         $xml = new Service();
 
@@ -276,17 +274,30 @@ class Runner
         $testSuite = $this->testFile;
         $this->adb->setTestSuite($testSuite);
 
+        $sleep = 0;
+        $sleepOscillate = false;
+
         if (isset($this->testObject->loop)) {
             $loops = $this->testObject->loop->count;
             $exitOnFail = isset($this->testObject->loop->stopOnFail) ? $this->testObject->loop->stopOnFail : false;
             $looping = true;
-            $sleep = isset($this->testObject->loop->sleep) ? $this->testObject->loop->sleep : 0;
+            if (isset($this->testObject->loop->sleep))
+                $sleep = isset($this->testObject->loop->sleep) ? $this->testObject->loop->sleep : 0;
+            else if (isset($this->testObject->loop->sleepStart)) {
+                // Alternatively allow sleep oscillations
+                $sleepOscillate = true;
+                $sleepSweepUp = true;
+                $sleep = isset($this->testObject->loop->sleepStart) ? $this->testObject->loop->sleepStart : 0;
+                $sleepEnd = isset($this->testObject->loop->sleepEnd) ? $this->testObject->loop->sleepEnd : 0;
+                $sleepIncrement = isset($this->testObject->loop->sleepIncrement) ? $this->testObject->loop->sleepIncrement : 0;
+            }
         } else {
             $loops = 1;
             $exitOnFail = false;
             $looping = false;
-            $sleep = 0;
         }
+
+        $sleepTime = $sleep;
 
         $failCnt = 0;
         $startTime = new Carbon;
@@ -346,8 +357,28 @@ class Runner
             $this->io->writeLine("  Total Test Time: " . $startTime->diff(new Carbon)->format("%Hh%im:%ss"));
 
             if (!$connectivityError && $sleep > 0) { // Connectivity problems should just be immediately retried
-                $this->io->writeLine("  ... Sleeping for " . $sleep . " seconds ...");
-                sleep($sleep);
+                $this->io->writeLine("  ... Sleeping for " . $sleepTime . " seconds ...");
+                sleep($sleepTime);
+
+                if ($sleepOscillate)
+                {
+                    if ($sleepSweepUp)
+                    {
+                        $sleepTime += $sleepIncrement;
+                        if ($sleepTime > $sleepEnd) {
+                            $sleepSweepUp = false;
+                            $sleepTime -= $sleepIncrement * 2;
+
+                        }
+                    }
+                    else {
+                        $sleepTime -= $sleepIncrement;
+                        if ($sleepTime > $sleepEnd) {
+                            $sleepSweepUp = true;
+                            $sleepTime += $sleepIncrement * 2;
+                        }
+                    }
+                }
             }
 
         }
