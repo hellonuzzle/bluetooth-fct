@@ -52,7 +52,7 @@ class Suite extends MCPElement
                             $element->xmlSerialize($writer);
                     },
                     new Disconnect($this->target->id),
-                    new Sleep(array('timeout' => 4000))
+                    new Sleep(array('timeout' => 1000))
                 ],
             ],
             new RunTest(['test' => "auto_test"])
